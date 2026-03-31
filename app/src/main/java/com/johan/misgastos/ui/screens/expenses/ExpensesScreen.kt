@@ -44,7 +44,12 @@ fun ExpensesScreen(
     val context = LocalContext.current
     val dayGroups = remember(uiState.expenses, uiState.filters.sortOption, uiState.groupingMode) {
         if (uiState.groupingMode == ExpenseGroupingMode.DAY) {
-            groupExpensesByDay(uiState.expenses, uiState.filters.sortOption)
+            groupItemsByDay(
+                items = uiState.expenses,
+                sortMode = uiState.filters.sortOption.toDayGroupingSortMode(),
+                dateSelector = { it.occurredAt },
+                amountSelector = { it.amountInCents },
+            )
         } else {
             emptyList()
         }
@@ -212,18 +217,18 @@ fun ExpensesScreen(
                     dayGroups.forEach { group ->
                         item(key = "header-${group.date.toEpochDay()}") {
                             SectionCard(
-                                title = formatDate(group.firstExpenseAt, preferences.datePattern),
+                                title = formatDate(group.firstItemAt, preferences.datePattern),
                                 subtitle = "Subtotal ${formatCurrency(group.totalAmountInCents, preferences.currencyCode)}",
                             ) {
                                 Text(
-                                    text = "${group.expenses.size} movimiento(s)",
+                                    text = "${group.items.size} movimiento(s)",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.Medium,
                                 )
                             }
                         }
-                        items(group.expenses, key = { it.id }) { expense ->
+                        items(group.items, key = { it.id }) { expense ->
                             ExpenseListItem(
                                 expense = expense,
                                 currencyCode = preferences.currencyCode,
@@ -235,5 +240,14 @@ fun ExpensesScreen(
                 }
             }
         }
+    }
+}
+
+private fun ExpenseSortOption.toDayGroupingSortMode(): DayGroupingSortMode {
+    return when (this) {
+        ExpenseSortOption.NEWEST -> DayGroupingSortMode.NEWEST
+        ExpenseSortOption.OLDEST -> DayGroupingSortMode.OLDEST
+        ExpenseSortOption.AMOUNT_DESC -> DayGroupingSortMode.AMOUNT_DESC
+        ExpenseSortOption.AMOUNT_ASC -> DayGroupingSortMode.AMOUNT_ASC
     }
 }
