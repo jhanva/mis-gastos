@@ -1,0 +1,22 @@
+# Android / Gradle
+.gradle/
+build/
+*/build/
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# OS / misc
+.DS_Store
+Thumbs.db
+captures/
+
+# Signing / secrets
+*.jks
+*.keystore
+keystore.properties
+
+# Keep Codex project rules and memories in-repo
+!.codex/
