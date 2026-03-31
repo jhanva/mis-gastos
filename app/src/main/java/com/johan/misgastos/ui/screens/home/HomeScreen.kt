@@ -1,12 +1,12 @@
 package com.johan.misgastos.ui.screens.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -85,16 +85,21 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        dashboard.recentExpenses.forEach { expense ->
+                            ExpenseListItem(
+                                expense = expense,
+                                currencyCode = preferences.currencyCode,
+                                datePattern = preferences.datePattern,
+                                onClick = { onExpenseClick(expense.id) },
+                            )
+                        }
+                    }
                 }
             }
-        }
-        items(dashboard.recentExpenses, key = { it.id }) { expense ->
-            ExpenseListItem(
-                expense = expense,
-                currencyCode = preferences.currencyCode,
-                datePattern = preferences.datePattern,
-                onClick = { onExpenseClick(expense.id) },
-            )
         }
     }
 }
