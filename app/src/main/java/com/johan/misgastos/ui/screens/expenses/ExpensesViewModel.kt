@@ -19,10 +19,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
+enum class ExpenseGroupingMode(val label: String) {
+    FLAT("Lista"),
+    DAY("Por día"),
+}
+
 data class ExpensesUiState(
     val expenses: List<Expense> = emptyList(),
     val categories: List<Category> = emptyList(),
     val filters: ExpenseFilters = ExpenseFilters(),
+    val groupingMode: ExpenseGroupingMode = ExpenseGroupingMode.FLAT,
 )
 
 @HiltViewModel
@@ -32,17 +38,20 @@ class ExpensesViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val filters = MutableStateFlow(ExpenseFilters())
+    private val groupingMode = MutableStateFlow(ExpenseGroupingMode.FLAT)
 
     val uiState: StateFlow<ExpensesUiState> =
         combine(
             expenseRepository.observeExpenses(),
             categoryRepository.observeCategories(includeInactive = false),
             filters,
-        ) { expenses, categories, currentFilters ->
+            groupingMode,
+        ) { expenses, categories, currentFilters, currentGroupingMode ->
             ExpensesUiState(
                 expenses = applyFilters(expenses, currentFilters),
                 categories = categories,
                 filters = currentFilters,
+                groupingMode = currentGroupingMode,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -68,6 +77,10 @@ class ExpensesViewModel @Inject constructor(
 
     fun updateSortOption(sortOption: ExpenseSortOption) {
         filters.update { it.copy(sortOption = sortOption) }
+    }
+
+    fun updateGroupingMode(mode: ExpenseGroupingMode) {
+        groupingMode.value = mode
     }
 
     fun clearFilters() {

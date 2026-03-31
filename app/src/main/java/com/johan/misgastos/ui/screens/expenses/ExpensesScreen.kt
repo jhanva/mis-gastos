@@ -16,16 +16,20 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.johan.misgastos.domain.model.Expense
 import com.johan.misgastos.domain.model.ExpenseSortOption
 import com.johan.misgastos.domain.model.UserPreferences
 import com.johan.misgastos.ui.components.ExpenseListItem
 import com.johan.misgastos.ui.components.SectionCard
 import com.johan.misgastos.utils.epochMillisToLocalDate
+import com.johan.misgastos.utils.formatCurrency
 import com.johan.misgastos.utils.formatDate
 import com.johan.misgastos.utils.showDatePicker
 import com.johan.misgastos.utils.startOfDayMillis
@@ -39,6 +43,13 @@ fun ExpensesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val dayGroups = remember(uiState.expenses, uiState.filters.sortOption, uiState.groupingMode) {
+        if (uiState.groupingMode == ExpenseGroupingMode.DAY) {
+            groupExpensesByDay(uiState.expenses, uiState.filters.sortOption)
+        } else {
+            emptyList()
+        }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -107,6 +118,25 @@ fun ExpensesScreen(
                     }
                 }
 
+                Text(
+                    text = "Vista",
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+                FlowRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ExpenseGroupingMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = uiState.groupingMode == mode,
+                            onClick = { viewModel.updateGroupingMode(mode) },
+                            label = { Text(mode.label) },
+                        )
+                    }
+                }
+
                 FlowRow(
                     modifier = Modifier.padding(top = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -167,14 +197,78 @@ fun ExpensesScreen(
                 }
             }
         } else {
-            items(uiState.expenses, key = { it.id }) { expense ->
-                ExpenseListItem(
-                    expense = expense,
-                    currencyCode = preferences.currencyCode,
-                    datePattern = preferences.datePattern,
-                    onClick = { onExpenseClick(expense.id) },
-                )
+            when (uiState.groupingMode) {
+                ExpenseGroupingMode.FLAT -> {
+                    items(uiState.expenses, key = { it.id }) { expense ->
+                        ExpenseListItem(
+                            expense = expense,
+                            currencyCode = preferences.currencyCode,
+                            datePattern = preferences.datePattern,
+                            onClick = { onExpenseClick(expense.id) },
+                        )
+                    }
+                }
+
+                ExpenseGroupingMode.DAY -> {
+                    dayGroups.forEach { group ->
+                        item(key = "header-${group.date.toEpochDay()}") {
+                            SectionCard(
+                                title = formatDate(group.firstExpenseAt, preferences.datePattern),
+                                subtitle = "Subtotal ${formatCurrency(group.totalAmountInCents, preferences.currencyCode)}",
+                            ) {
+                                Text(
+                                    text = "${group.expenses.size} movimiento(s)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+                        }
+                        items(group.expenses, key = { it.id }) { expense ->
+                            ExpenseListItem(
+                                expense = expense,
+                                currencyCode = preferences.currencyCode,
+                                datePattern = preferences.datePattern,
+                                onClick = { onExpenseClick(expense.id) },
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+private data class ExpenseDayGroup(
+    val date: java.time.LocalDate,
+    val expenses: List<Expense>,
+) {
+    val totalAmountInCents: Long = expenses.sumOf { it.amountInCents }
+    val firstExpenseAt: Long = expenses.first().occurredAt
+}
+
+private fun groupExpensesByDay(
+    expenses: List<Expense>,
+    sortOption: ExpenseSortOption,
+): List<ExpenseDayGroup> {
+    val grouped = expenses.groupBy { epochMillisToLocalDate(it.occurredAt) }
+
+    val orderedDates = when (sortOption) {
+        ExpenseSortOption.OLDEST -> grouped.keys.sorted()
+        else -> grouped.keys.sortedDescending()
+    }
+
+    return orderedDates.map { date ->
+        val dayExpenses = grouped.getValue(date)
+        val orderedExpenses = when (sortOption) {
+            ExpenseSortOption.AMOUNT_DESC -> dayExpenses.sortedByDescending { it.amountInCents }
+            ExpenseSortOption.AMOUNT_ASC -> dayExpenses.sortedBy { it.amountInCents }
+            ExpenseSortOption.OLDEST -> dayExpenses.sortedBy { it.occurredAt }
+            ExpenseSortOption.NEWEST -> dayExpenses.sortedByDescending { it.occurredAt }
+        }
+        ExpenseDayGroup(
+            date = date,
+            expenses = orderedExpenses,
+        )
     }
 }
