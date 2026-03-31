@@ -23,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.johan.misgastos.domain.model.Expense
 import com.johan.misgastos.domain.model.ExpenseSortOption
 import com.johan.misgastos.domain.model.UserPreferences
 import com.johan.misgastos.ui.components.ExpenseListItem
@@ -236,39 +235,5 @@ fun ExpensesScreen(
                 }
             }
         }
-    }
-}
-
-private data class ExpenseDayGroup(
-    val date: java.time.LocalDate,
-    val expenses: List<Expense>,
-) {
-    val totalAmountInCents: Long = expenses.sumOf { it.amountInCents }
-    val firstExpenseAt: Long = expenses.first().occurredAt
-}
-
-private fun groupExpensesByDay(
-    expenses: List<Expense>,
-    sortOption: ExpenseSortOption,
-): List<ExpenseDayGroup> {
-    val grouped = expenses.groupBy { epochMillisToLocalDate(it.occurredAt) }
-
-    val orderedDates = when (sortOption) {
-        ExpenseSortOption.OLDEST -> grouped.keys.sorted()
-        else -> grouped.keys.sortedDescending()
-    }
-
-    return orderedDates.map { date ->
-        val dayExpenses = grouped.getValue(date)
-        val orderedExpenses = when (sortOption) {
-            ExpenseSortOption.AMOUNT_DESC -> dayExpenses.sortedByDescending { it.amountInCents }
-            ExpenseSortOption.AMOUNT_ASC -> dayExpenses.sortedBy { it.amountInCents }
-            ExpenseSortOption.OLDEST -> dayExpenses.sortedBy { it.occurredAt }
-            ExpenseSortOption.NEWEST -> dayExpenses.sortedByDescending { it.occurredAt }
-        }
-        ExpenseDayGroup(
-            date = date,
-            expenses = orderedExpenses,
-        )
     }
 }
