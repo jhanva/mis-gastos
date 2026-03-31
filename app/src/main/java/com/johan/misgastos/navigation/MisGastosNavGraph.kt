@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.johan.misgastos.domain.model.UserPreferences
 import com.johan.misgastos.ui.screens.categories.CategoriesScreen
+import com.johan.misgastos.ui.screens.expensedetail.ExpenseDetailScreen
 import com.johan.misgastos.ui.screens.expenseeditor.ExpenseEditorScreen
 import com.johan.misgastos.ui.screens.expenses.ExpensesScreen
 import com.johan.misgastos.ui.screens.home.HomeScreen
@@ -34,7 +35,7 @@ fun MisGastosNavGraph(
                     navController.navigate(AppDestination.ExpenseEditor.createRoute())
                 },
                 onExpenseClick = { expenseId ->
-                    navController.navigate(AppDestination.ExpenseEditor.createRoute(expenseId))
+                    navController.navigate(AppDestination.ExpenseDetail.createRoute(expenseId))
                 },
             )
         }
@@ -42,7 +43,7 @@ fun MisGastosNavGraph(
             ExpensesScreen(
                 preferences = preferences,
                 onExpenseClick = { expenseId ->
-                    navController.navigate(AppDestination.ExpenseEditor.createRoute(expenseId))
+                    navController.navigate(AppDestination.ExpenseDetail.createRoute(expenseId))
                 },
             )
         }
@@ -51,6 +52,22 @@ fun MisGastosNavGraph(
         }
         composable(AppDestination.Settings.route) {
             SettingsScreen(preferences = preferences)
+        }
+        composable(
+            route = AppDestination.ExpenseDetail.routeWithArgs,
+            arguments = listOf(
+                navArgument(AppDestination.ExpenseDetail.ARG_EXPENSE_ID) {
+                    type = NavType.LongType
+                },
+            ),
+        ) {
+            ExpenseDetailScreen(
+                preferences = preferences,
+                onEdit = { expenseId ->
+                    navController.navigate(AppDestination.ExpenseEditor.createRoute(expenseId))
+                },
+                onClose = { navController.popBackStack() },
+            )
         }
         composable(
             route = AppDestination.ExpenseEditor.routeWithArgs,

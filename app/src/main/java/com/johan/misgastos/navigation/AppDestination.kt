@@ -6,6 +6,13 @@ sealed class AppDestination(val route: String) {
     data object Categories : AppDestination("categories")
     data object Settings : AppDestination("settings")
 
+    data object ExpenseDetail : AppDestination("expense_detail") {
+        const val ARG_EXPENSE_ID = "expenseId"
+        val routeWithArgs = "$route/{$ARG_EXPENSE_ID}"
+
+        fun createRoute(expenseId: Long): String = "$route/$expenseId"
+    }
+
     data object ExpenseEditor : AppDestination("expense_editor") {
         const val ARG_EXPENSE_ID = "expenseId"
         val routeWithArgs = "$route?$ARG_EXPENSE_ID={$ARG_EXPENSE_ID}"
