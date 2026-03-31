@@ -1,5 +1,6 @@
 package com.johan.misgastos.ui.screens.expenseeditor
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -55,6 +56,16 @@ fun ExpenseEditorScreen(
     val snackbarController = LocalSnackbarController.current
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDiscardChangesDialog by remember { mutableStateOf(false) }
+
+    BackHandler {
+        when {
+            showDeleteDialog -> showDeleteDialog = false
+            showDiscardChangesDialog -> showDiscardChangesDialog = false
+            uiState.hasUnsavedChanges -> showDiscardChangesDialog = true
+            else -> onClose()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -90,6 +101,29 @@ fun ExpenseEditorScreen(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancelar")
+                }
+            },
+        )
+    }
+
+    if (showDiscardChangesDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardChangesDialog = false },
+            title = { Text("Descartar cambios") },
+            text = { Text("Tienes cambios sin guardar. Si sales ahora, se perderán.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardChangesDialog = false
+                        onClose()
+                    },
+                ) {
+                    Text("Salir sin guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardChangesDialog = false }) {
+                    Text("Seguir editando")
                 }
             },
         )

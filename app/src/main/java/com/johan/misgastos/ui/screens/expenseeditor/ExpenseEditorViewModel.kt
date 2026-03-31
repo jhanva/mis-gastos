@@ -33,8 +33,31 @@ data class ExpenseEditorUiState(
     val paymentMethod: PaymentMethod = PaymentMethod.CASH,
     val occurredAt: Long = System.currentTimeMillis(),
     val categories: List<Category> = emptyList(),
+    val hasUnsavedChanges: Boolean = false,
 ) {
     val isEditing: Boolean = expenseId != null
+}
+
+private data class ExpenseEditorSnapshot(
+    val amountInput: String,
+    val title: String,
+    val description: String,
+    val notes: String,
+    val selectedCategoryId: Long?,
+    val paymentMethod: PaymentMethod,
+    val occurredAt: Long,
+)
+
+private fun ExpenseEditorUiState.toSnapshot(): ExpenseEditorSnapshot {
+    return ExpenseEditorSnapshot(
+        amountInput = amountInput,
+        title = title,
+        description = description,
+        notes = notes,
+        selectedCategoryId = selectedCategoryId,
+        paymentMethod = paymentMethod,
+        occurredAt = occurredAt,
+    )
 }
 
 sealed interface ExpenseEditorEvent {
@@ -71,15 +94,22 @@ class ExpenseEditorViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     private var initialExpenseLoaded = false
+    private var initialSnapshot: ExpenseEditorSnapshot? = null
 
     init {
         viewModelScope.launch {
             categoryRepository.observeCategories(includeInactive = false).collect { categories ->
                 mutableState.update { state ->
-                    state.copy(
+                    val updatedState = state.copy(
                         categories = categories,
                         selectedCategoryId = state.selectedCategoryId ?: categories.firstOrNull()?.id,
                     )
+                    recalculateDirtyState(updatedState)
+                }
+
+                if (!mutableState.value.isLoading && initialSnapshot == null && mutableState.value.selectedCategoryId != null) {
+                    initialSnapshot = mutableState.value.toSnapshot()
+                    mutableState.update { it.copy(hasUnsavedChanges = false) }
                 }
             }
         }
@@ -100,41 +130,43 @@ class ExpenseEditorViewModel @Inject constructor(
                             paymentMethod = expense.paymentMethod,
                             occurredAt = expense.occurredAt,
                             categories = mutableState.value.categories,
+                            hasUnsavedChanges = false,
                         )
+                        initialSnapshot = mutableState.value.toSnapshot()
                     }
                 }
             }
         } else {
-            mutableState.update { it.copy(isLoading = false) }
+            mutableState.update { recalculateDirtyState(it.copy(isLoading = false)) }
         }
     }
 
     fun updateAmount(value: String) {
-        mutableState.update { it.copy(amountInput = value) }
+        mutableState.update { recalculateDirtyState(it.copy(amountInput = value)) }
     }
 
     fun updateTitle(value: String) {
-        mutableState.update { it.copy(title = value) }
+        mutableState.update { recalculateDirtyState(it.copy(title = value)) }
     }
 
     fun updateDescription(value: String) {
-        mutableState.update { it.copy(description = value) }
+        mutableState.update { recalculateDirtyState(it.copy(description = value)) }
     }
 
     fun updateNotes(value: String) {
-        mutableState.update { it.copy(notes = value) }
+        mutableState.update { recalculateDirtyState(it.copy(notes = value)) }
     }
 
     fun updateCategory(categoryId: Long) {
-        mutableState.update { it.copy(selectedCategoryId = categoryId) }
+        mutableState.update { recalculateDirtyState(it.copy(selectedCategoryId = categoryId)) }
     }
 
     fun updatePaymentMethod(method: PaymentMethod) {
-        mutableState.update { it.copy(paymentMethod = method) }
+        mutableState.update { recalculateDirtyState(it.copy(paymentMethod = method)) }
     }
 
     fun updateOccurredAt(occurredAt: Long) {
-        mutableState.update { it.copy(occurredAt = occurredAt) }
+        mutableState.update { recalculateDirtyState(it.copy(occurredAt = occurredAt)) }
     }
 
     fun saveExpense() {
@@ -148,6 +180,7 @@ class ExpenseEditorViewModel @Inject constructor(
                 categoryId == null -> _events.emit(ExpenseEditorEvent.Message("Selecciona una categoría"))
                 state.title.isBlank() -> _events.emit(ExpenseEditorEvent.Message("Agrega un nombre corto para el gasto"))
                 else -> {
+                    val currentSnapshot = state.toSnapshot()
                     expenseRepository.saveExpense(
                         ExpenseDraft(
                             id = state.expenseId,
@@ -160,6 +193,8 @@ class ExpenseEditorViewModel @Inject constructor(
                             notes = state.notes,
                         ),
                     )
+                    initialSnapshot = currentSnapshot
+                    mutableState.update { it.copy(hasUnsavedChanges = false) }
                     _events.emit(ExpenseEditorEvent.Saved)
                 }
             }
@@ -172,5 +207,13 @@ class ExpenseEditorViewModel @Inject constructor(
             expenseRepository.deleteExpense(expenseId)
             _events.emit(ExpenseEditorEvent.Deleted)
         }
+    }
+
+    private fun recalculateDirtyState(state: ExpenseEditorUiState): ExpenseEditorUiState {
+        val dirty = initialSnapshot?.let { snapshot ->
+            state.toSnapshot() != snapshot
+        } ?: false
+
+        return state.copy(hasUnsavedChanges = dirty)
     }
 }
