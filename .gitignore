@@ -18,5 +18,5 @@ captures/
 *.keystore
 keystore.properties
 
-# Keep Codex project rules and memories in-repo
-!.codex/
+# Codex local context
+.codex/
