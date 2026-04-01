@@ -31,7 +31,9 @@ object AppModule {
             context,
             MisGastosDatabase::class.java,
             "mis_gastos.db",
-        ).fallbackToDestructiveMigration().build()
+        )
+            // Keep user expense history intact; future schema changes must ship explicit migrations.
+            .build()
     }
 
     @Provides

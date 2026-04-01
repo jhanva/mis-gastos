@@ -10,7 +10,7 @@ import com.johan.misgastos.data.local.entity.ExpenseEntity
 @Database(
     entities = [CategoryEntity::class, ExpenseEntity::class],
     version = 1,
-    exportSchema = false,
+    exportSchema = true,
 )
 abstract class MisGastosDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
