@@ -125,13 +125,13 @@ private fun CompactExpensesLayout(
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
+        item(contentType = "screen_header") {
             Text(
                 text = "Historial de gastos",
                 style = MaterialTheme.typography.headlineMedium,
             )
         }
-        item {
+        item(contentType = "filters") {
             ExpensesFiltersSection(
                 preferences = preferences,
                 uiState = uiState,
@@ -191,7 +191,7 @@ private fun ExpandedExpensesLayout(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
-                item {
+                item(contentType = "filters") {
                     ExpensesFiltersSection(
                         preferences = preferences,
                         uiState = uiState,
@@ -369,7 +369,7 @@ private fun LazyListScope.expenseResultItems(
     onExpenseClick: (Long) -> Unit,
 ) {
     if (uiState.expenses.isEmpty()) {
-        item {
+        item(contentType = "empty_state") {
             SectionCard(title = "Sin resultados") {
                 Text(
                     text = "No hay gastos que coincidan con los filtros actuales.",
@@ -381,7 +381,11 @@ private fun LazyListScope.expenseResultItems(
     } else {
         when (uiState.groupingMode) {
             ExpenseGroupingMode.FLAT -> {
-                items(uiState.expenses, key = { it.id }) { expense ->
+                items(
+                    items = uiState.expenses,
+                    key = { it.id },
+                    contentType = { "expense" },
+                ) { expense ->
                     ExpenseListItem(
                         expense = expense,
                         currencyCode = preferences.currencyCode,
@@ -393,7 +397,10 @@ private fun LazyListScope.expenseResultItems(
 
             ExpenseGroupingMode.DAY -> {
                 dayGroups.forEach { group ->
-                    item(key = "header-${group.date.toEpochDay()}") {
+                    item(
+                        key = "header-${group.date.toEpochDay()}",
+                        contentType = "day_header",
+                    ) {
                         SectionCard(
                             title = formatDate(group.firstItemAt, preferences.datePattern),
                             subtitle = "Subtotal ${formatCurrency(group.totalAmountInCents, preferences.currencyCode)}",
@@ -406,7 +413,11 @@ private fun LazyListScope.expenseResultItems(
                             )
                         }
                     }
-                    items(group.items, key = { it.id }) { expense ->
+                    items(
+                        items = group.items,
+                        key = { it.id },
+                        contentType = { "expense" },
+                    ) { expense ->
                         ExpenseListItem(
                             expense = expense,
                             currencyCode = preferences.currencyCode,

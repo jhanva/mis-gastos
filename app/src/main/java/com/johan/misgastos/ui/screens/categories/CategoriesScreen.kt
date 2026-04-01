@@ -114,7 +114,11 @@ fun CategoriesScreen(
                 }
             }
         }
-        items(uiState.categories, key = { it.id }) { category ->
+        items(
+            items = uiState.categories,
+            key = { it.id },
+            contentType = { "category" },
+        ) { category ->
             SectionCard(
                 title = category.name,
                 subtitle = if (category.isActive) "Activa" else "Inactiva",
