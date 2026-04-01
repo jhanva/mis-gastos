@@ -10,11 +10,11 @@ ksp {
 }
 
 android {
-    namespace = "com.johan.misgastos"
+    namespace = "com.misgastos"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.johan.misgastos"
+        applicationId = "com.misgastos"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

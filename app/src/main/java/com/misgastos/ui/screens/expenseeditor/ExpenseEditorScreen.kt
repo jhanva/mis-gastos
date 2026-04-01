@@ -1,0 +1,508 @@
+package com.misgastos.ui.screens.expenseeditor
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.misgastos.domain.model.Category
+import com.misgastos.domain.model.PaymentMethod
+import com.misgastos.domain.model.UserPreferences
+import com.misgastos.ui.LocalSnackbarController
+import com.misgastos.ui.components.AppWidthSizeClass
+import com.misgastos.ui.components.SectionCard
+import com.misgastos.ui.components.contentHorizontalPadding
+import com.misgastos.ui.components.rememberAppWidthSizeClass
+import com.misgastos.utils.epochMillisToLocalDate
+import com.misgastos.utils.epochMillisToLocalTime
+import com.misgastos.utils.formatDate
+import com.misgastos.utils.formatTime
+import com.misgastos.utils.showDatePicker
+import com.misgastos.utils.showTimePicker
+import com.misgastos.utils.toEpochMillis
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ExpenseEditorScreen(
+    preferences: UserPreferences,
+    onClose: () -> Unit,
+    viewModel: ExpenseEditorViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarController = LocalSnackbarController.current
+    val context = LocalContext.current
+    val widthSizeClass = rememberAppWidthSizeClass()
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDiscardChangesDialog by remember { mutableStateOf(false) }
+
+    BackHandler {
+        when {
+            showDeleteDialog -> showDeleteDialog = false
+            showDiscardChangesDialog -> showDiscardChangesDialog = false
+            uiState.hasUnsavedChanges -> showDiscardChangesDialog = true
+            else -> onClose()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is ExpenseEditorEvent.Message -> snackbarController.showMessage(event.value)
+                ExpenseEditorEvent.Saved -> {
+                    snackbarController.showMessage("Gasto guardado")
+                    onClose()
+                }
+                ExpenseEditorEvent.Deleted -> {
+                    snackbarController.showMessage("Gasto eliminado")
+                    onClose()
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(uiState.isMissing) {
+        if (uiState.isMissing) {
+            snackbarController.showMessage("El gasto ya no existe")
+            onClose()
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar gasto") },
+            text = { Text("Esta accion no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteExpense()
+                    },
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            },
+        )
+    }
+
+    if (showDiscardChangesDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardChangesDialog = false },
+            title = { Text("Descartar cambios") },
+            text = { Text("Tienes cambios sin guardar. Si sales ahora, se perderan.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardChangesDialog = false
+                        onClose()
+                    },
+                ) {
+                    Text("Salir sin guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardChangesDialog = false }) {
+                    Text("Seguir editando")
+                }
+            },
+        )
+    }
+
+    if (uiState.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (widthSizeClass == AppWidthSizeClass.EXPANDED) {
+        ExpandedExpenseEditorLayout(
+            preferences = preferences,
+            uiState = uiState,
+            context = context,
+            onAmountChange = viewModel::updateAmount,
+            onTitleChange = viewModel::updateTitle,
+            onDescriptionChange = viewModel::updateDescription,
+            onCategoryChange = viewModel::updateCategory,
+            onPaymentMethodChange = viewModel::updatePaymentMethod,
+            onOccurredAtChange = viewModel::updateOccurredAt,
+            onNotesChange = viewModel::updateNotes,
+            onSave = viewModel::saveExpense,
+            onDelete = { showDeleteDialog = true },
+        )
+    } else {
+        CompactExpenseEditorLayout(
+            preferences = preferences,
+            uiState = uiState,
+            widthSizeClass = widthSizeClass,
+            context = context,
+            onAmountChange = viewModel::updateAmount,
+            onTitleChange = viewModel::updateTitle,
+            onDescriptionChange = viewModel::updateDescription,
+            onCategoryChange = viewModel::updateCategory,
+            onPaymentMethodChange = viewModel::updatePaymentMethod,
+            onOccurredAtChange = viewModel::updateOccurredAt,
+            onNotesChange = viewModel::updateNotes,
+            onSave = viewModel::saveExpense,
+            onDelete = { showDeleteDialog = true },
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CompactExpenseEditorLayout(
+    preferences: UserPreferences,
+    uiState: ExpenseEditorUiState,
+    widthSizeClass: AppWidthSizeClass,
+    context: android.content.Context,
+    onAmountChange: (String) -> Unit,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onCategoryChange: (Long) -> Unit,
+    onPaymentMethodChange: (PaymentMethod) -> Unit,
+    onOccurredAtChange: (Long) -> Unit,
+    onNotesChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(widthSizeClass),
+            vertical = 24.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            Text(
+                text = if (uiState.isEditing) "Editar gasto" else "Nuevo gasto",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
+        item {
+            ExpensePrimaryDataSection(
+                uiState = uiState,
+                onAmountChange = onAmountChange,
+                onTitleChange = onTitleChange,
+                onDescriptionChange = onDescriptionChange,
+                onCategoryChange = onCategoryChange,
+                onPaymentMethodChange = onPaymentMethodChange,
+            )
+        }
+        item {
+            ExpenseScheduleSection(
+                preferences = preferences,
+                occurredAt = uiState.occurredAt,
+                context = context,
+                onOccurredAtChange = onOccurredAtChange,
+            )
+        }
+        item {
+            ExpenseNotesSection(
+                notes = uiState.notes,
+                onNotesChange = onNotesChange,
+            )
+        }
+        item {
+            ExpensePrimaryActionButton(
+                isEditing = uiState.isEditing,
+                onSave = onSave,
+            )
+        }
+        if (uiState.isEditing) {
+            item {
+                ExpenseDeleteActionButton(onDelete = onDelete)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExpandedExpenseEditorLayout(
+    preferences: UserPreferences,
+    uiState: ExpenseEditorUiState,
+    context: android.content.Context,
+    onAmountChange: (String) -> Unit,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onCategoryChange: (Long) -> Unit,
+    onPaymentMethodChange: (PaymentMethod) -> Unit,
+    onOccurredAtChange: (Long) -> Unit,
+    onNotesChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(AppWidthSizeClass.EXPANDED),
+            vertical = 24.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            Text(
+                text = if (uiState.isEditing) "Editar gasto" else "Nuevo gasto",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1.15f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    ExpensePrimaryDataSection(
+                        uiState = uiState,
+                        onAmountChange = onAmountChange,
+                        onTitleChange = onTitleChange,
+                        onDescriptionChange = onDescriptionChange,
+                        onCategoryChange = onCategoryChange,
+                        onPaymentMethodChange = onPaymentMethodChange,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(0.85f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    ExpenseScheduleSection(
+                        preferences = preferences,
+                        occurredAt = uiState.occurredAt,
+                        context = context,
+                        onOccurredAtChange = onOccurredAtChange,
+                    )
+                    ExpenseNotesSection(
+                        notes = uiState.notes,
+                        onNotesChange = onNotesChange,
+                    )
+                    ExpensePrimaryActionButton(
+                        isEditing = uiState.isEditing,
+                        onSave = onSave,
+                    )
+                    if (uiState.isEditing) {
+                        ExpenseDeleteActionButton(onDelete = onDelete)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExpensePrimaryDataSection(
+    uiState: ExpenseEditorUiState,
+    onAmountChange: (String) -> Unit,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onCategoryChange: (Long) -> Unit,
+    onPaymentMethodChange: (PaymentMethod) -> Unit,
+) {
+    SectionCard(
+        title = "Datos principales",
+        subtitle = "Registra el gasto con la menor friccion posible.",
+    ) {
+        OutlinedTextField(
+            value = uiState.amountInput,
+            onValueChange = onAmountChange,
+            label = { Text("Monto") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = uiState.title,
+            onValueChange = onTitleChange,
+            label = { Text("Nombre corto") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = uiState.description,
+            onValueChange = onDescriptionChange,
+            label = { Text("Descripcion") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            minLines = 2,
+        )
+        Text(
+            text = "Categoria",
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+        FlowRow(
+            modifier = Modifier.padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            uiState.categories.forEach { category ->
+                FilterChip(
+                    selected = uiState.selectedCategoryId == category.id,
+                    onClick = { onCategoryChange(category.id) },
+                    label = { Text(categoryChipLabel(category)) },
+                )
+            }
+        }
+        Text(
+            text = "Metodo de pago",
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+        FlowRow(
+            modifier = Modifier.padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            paymentMethodOptionsFor(uiState.paymentMethod).forEach { method ->
+                FilterChip(
+                    selected = uiState.paymentMethod == method,
+                    onClick = { onPaymentMethodChange(method) },
+                    label = { Text(method.label) },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExpenseScheduleSection(
+    preferences: UserPreferences,
+    occurredAt: Long,
+    context: android.content.Context,
+    onOccurredAtChange: (Long) -> Unit,
+) {
+    SectionCard(
+        title = "Fecha y hora",
+        subtitle = "Puedes registrar un gasto pasado o ajustar la hora exacta.",
+    ) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AssistChip(
+                onClick = {
+                    showDatePicker(
+                        context = context,
+                        initialDate = epochMillisToLocalDate(occurredAt),
+                    ) { date ->
+                        onOccurredAtChange(
+                            toEpochMillis(date, epochMillisToLocalTime(occurredAt)),
+                        )
+                    }
+                },
+                label = { Text(formatDate(occurredAt, preferences.datePattern)) },
+            )
+            AssistChip(
+                onClick = {
+                    showTimePicker(
+                        context = context,
+                        initialTime = epochMillisToLocalTime(occurredAt),
+                    ) { time ->
+                        onOccurredAtChange(
+                            toEpochMillis(epochMillisToLocalDate(occurredAt), time),
+                        )
+                    }
+                },
+                label = { Text(formatTime(occurredAt)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpenseNotesSection(
+    notes: String,
+    onNotesChange: (String) -> Unit,
+) {
+    SectionCard(title = "Notas") {
+        OutlinedTextField(
+            value = notes,
+            onValueChange = onNotesChange,
+            label = { Text("Nota opcional") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+        )
+    }
+}
+
+@Composable
+private fun ExpensePrimaryActionButton(
+    isEditing: Boolean,
+    onSave: () -> Unit,
+) {
+    FilledTonalButton(
+        onClick = onSave,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(if (isEditing) "Guardar cambios" else "Guardar gasto")
+    }
+}
+
+@Composable
+private fun ExpenseDeleteActionButton(
+    onDelete: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onDelete,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text("Eliminar gasto")
+    }
+}
+
+private fun categoryChipLabel(category: Category): String {
+    return if (category.isActive) category.name else "${category.name} (inactiva)"
+}
+
+private fun paymentMethodOptionsFor(currentMethod: PaymentMethod): List<PaymentMethod> {
+    return if (currentMethod == PaymentMethod.CARD) {
+        listOf(PaymentMethod.CARD) + PaymentMethod.selectableEntries
+    } else {
+        PaymentMethod.selectableEntries
+    }
+}

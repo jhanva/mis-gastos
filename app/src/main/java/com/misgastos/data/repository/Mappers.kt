@@ -1,0 +1,48 @@
+package com.misgastos.data.repository
+
+import com.misgastos.data.local.entity.CategoryEntity
+import com.misgastos.data.local.entity.ExpenseWithCategoryEntity
+import com.misgastos.data.local.entity.SubscriptionEntity
+import com.misgastos.domain.model.Category
+import com.misgastos.domain.model.Expense
+import com.misgastos.domain.model.PaymentMethod
+import com.misgastos.domain.model.Subscription
+
+fun CategoryEntity.toDomain(): Category {
+    return Category(
+        id = id,
+        name = name,
+        iconName = iconName,
+        colorHex = colorHex,
+        isActive = isActive,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
+}
+
+fun ExpenseWithCategoryEntity.toDomain(): Expense {
+    return Expense(
+        id = expense.id,
+        amountInCents = expense.amountInCents,
+        title = expense.title,
+        description = expense.description,
+        category = category.toDomain(),
+        paymentMethod = PaymentMethod.fromValue(expense.paymentMethod),
+        occurredAt = expense.occurredAt,
+        notes = expense.notes,
+        createdAt = expense.createdAt,
+        updatedAt = expense.updatedAt,
+    )
+}
+
+fun SubscriptionEntity.toDomain(): Subscription {
+    return Subscription(
+        id = id,
+        name = name,
+        monthlyAmountInCents = monthlyAmountInCents,
+        billingDay = billingDay,
+        paymentMethod = PaymentMethod.fromValue(paymentMethod),
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
+}

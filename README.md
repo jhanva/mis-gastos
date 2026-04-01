@@ -1,4 +1,4 @@
-# Mis gastos
+# Mis Gastos
 
 Aplicacion Android para registrar gastos personales de forma local y sin dependencias remotas. El proyecto esta construido con Kotlin y Jetpack Compose, y guarda la informacion en el dispositivo usando Room y DataStore.
 
@@ -64,14 +64,8 @@ app/build/outputs/apk/debug/app-debug.apk
 ## Estructura
 
 ```text
-app/src/main/java/com/johan/misgastos
+app/src/main/java/com/misgastos
 app/src/main/res
 app/src/test
 app/schemas
 ```
-
-## Notas QA recientes
-
-- Se corrigio el tema base para que sea compatible con `minSdk 26`
-- Se elimino `fallbackToDestructiveMigration()` para proteger la informacion del usuario
-- Se dejo exportado el schema inicial de Room para soportar migraciones futuras
