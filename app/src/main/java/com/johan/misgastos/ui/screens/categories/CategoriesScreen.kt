@@ -4,13 +4,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -37,8 +42,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.johan.misgastos.domain.model.Category
 import com.johan.misgastos.domain.model.CategoryDraft
 import com.johan.misgastos.ui.LocalSnackbarController
-import com.johan.misgastos.ui.components.contentHorizontalPadding
+import com.johan.misgastos.ui.components.AppWidthSizeClass
 import com.johan.misgastos.ui.components.SectionCard
+import com.johan.misgastos.ui.components.contentHorizontalPadding
 import com.johan.misgastos.ui.components.rememberAppWidthSizeClass
 import com.johan.misgastos.utils.categoryColorOptions
 import com.johan.misgastos.utils.categoryIconOptions
@@ -85,6 +91,41 @@ fun CategoriesScreen(
         )
     }
 
+    if (widthSizeClass == AppWidthSizeClass.EXPANDED) {
+        ExpandedCategoriesLayout(
+            categories = uiState.categories,
+            onNewCategory = {
+                editingCategory = null
+                showDialog = true
+            },
+            onEditCategory = { category ->
+                editingCategory = category
+                showDialog = true
+            },
+        )
+    } else {
+        CompactCategoriesLayout(
+            categories = uiState.categories,
+            widthSizeClass = widthSizeClass,
+            onNewCategory = {
+                editingCategory = null
+                showDialog = true
+            },
+            onEditCategory = { category ->
+                editingCategory = category
+                showDialog = true
+            },
+        )
+    }
+}
+
+@Composable
+private fun CompactCategoriesLayout(
+    categories: List<Category>,
+    widthSizeClass: AppWidthSizeClass,
+    onNewCategory: () -> Unit,
+    onEditCategory: (Category) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -93,74 +134,167 @@ fun CategoriesScreen(
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
+        item(contentType = "screen_header") {
             Text(
-                text = "Categorías",
+                text = "Categorias",
                 style = MaterialTheme.typography.headlineMedium,
             )
         }
-        item {
-            SectionCard(
-                title = "Gestión flexible",
-                subtitle = "Crea, edita o desactiva categorías sin perder orden visual.",
-            ) {
-                FilledTonalButton(
-                    onClick = {
-                        editingCategory = null
-                        showDialog = true
-                    },
-                ) {
-                    Text("Nueva categoría")
-                }
-            }
+        item(contentType = "toolbar") {
+            CategoriesManagementSection(
+                categories = categories,
+                onNewCategory = onNewCategory,
+            )
         }
         items(
-            items = uiState.categories,
+            items = categories,
             key = { it.id },
             contentType = { "category" },
         ) { category ->
-            SectionCard(
-                title = category.name,
-                subtitle = if (category.isActive) "Activa" else "Inactiva",
-                modifier = Modifier.fillMaxWidth(),
+            CategoryListItemCard(
+                category = category,
+                onEdit = { onEditCategory(category) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpandedCategoriesLayout(
+    categories: List<Category>,
+    onNewCategory: () -> Unit,
+    onEditCategory: (Category) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = contentHorizontalPadding(AppWidthSizeClass.EXPANDED), vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = "Categorias",
+            style = MaterialTheme.typography.headlineMedium,
+        )
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .width(320.dp)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        androidx.compose.foundation.layout.Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(colorFromHex(category.colorHex).copy(alpha = 0.18f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = symbolForCategory(category.iconName),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = colorFromHex(category.colorHex),
-                            )
-                        }
-                        Text(
-                            text = if (category.isActive) "Lista para nuevos gastos" else "Oculta al crear gastos",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    TextButton(
-                        onClick = {
-                            editingCategory = category
-                            showDialog = true
-                        },
-                    ) {
-                        Text("Editar")
-                    }
+                item(contentType = "toolbar") {
+                    CategoriesManagementSection(
+                        categories = categories,
+                        onNewCategory = onNewCategory,
+                    )
                 }
+            }
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
+            ) {
+                items(
+                    items = categories,
+                    key = { it.id },
+                    contentType = { "category" },
+                ) { category ->
+                    CategoryListItemCard(
+                        category = category,
+                        onEdit = { onEditCategory(category) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoriesManagementSection(
+    categories: List<Category>,
+    onNewCategory: () -> Unit,
+) {
+    val activeCount = categories.count(Category::isActive)
+    val inactiveCount = categories.size - activeCount
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        SectionCard(
+            title = "Gestion flexible",
+            subtitle = "Crea, edita o desactiva categorias sin perder orden visual.",
+        ) {
+            FilledTonalButton(onClick = onNewCategory) {
+                Text("Nueva categoria")
+            }
+        }
+        SectionCard(
+            title = "Resumen",
+            subtitle = "Estado rapido de tu clasificacion actual.",
+        ) {
+            Text(
+                text = "$activeCount activa(s)",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = "$inactiveCount inactiva(s)",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryListItemCard(
+    category: Category,
+    onEdit: () -> Unit,
+) {
+    val categoryColor = remember(category.colorHex) {
+        colorFromHex(category.colorHex)
+    }
+
+    SectionCard(
+        title = category.name,
+        subtitle = if (category.isActive) "Activa" else "Inactiva",
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(categoryColor.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = symbolForCategory(category.iconName),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = categoryColor,
+                    )
+                }
+                Text(
+                    text = if (category.isActive) "Lista para nuevos gastos" else "Oculta al crear gastos",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = onEdit) {
+                Text("Editar")
             }
         }
     }
@@ -183,8 +317,8 @@ private fun CategoryEditorDialog(
     if (showDeleteConfirm && category != null) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Eliminar categoría") },
-            text = { Text("Si esta categoría ya tiene gastos asociados, la eliminación será bloqueada.") },
+            title = { Text("Eliminar categoria") },
+            text = { Text("Si esta categoria ya tiene gastos asociados, la eliminacion sera bloqueada.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -206,7 +340,7 @@ private fun CategoryEditorDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(if (category == null) "Nueva categoría" else "Editar categoría")
+            Text(if (category == null) "Nueva categoria" else "Editar categoria")
         },
         text = {
             LazyColumn(
@@ -223,7 +357,7 @@ private fun CategoryEditorDialog(
                 }
                 item {
                     Text(
-                        text = "Ícono",
+                        text = "Icono",
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
@@ -238,9 +372,7 @@ private fun CategoryEditorDialog(
                                 onClick = { selectedIcon = option.key },
                                 label = { Text(option.label) },
                                 leadingIcon = {
-                                    Text(
-                                        text = option.symbol,
-                                    )
+                                    Text(option.symbol)
                                 },
                             )
                         }
@@ -263,7 +395,7 @@ private fun CategoryEditorDialog(
                                 (color.green * 255).toInt(),
                                 (color.blue * 255).toInt(),
                             )
-                            androidx.compose.foundation.layout.Box(
+                            Box(
                                 modifier = Modifier
                                     .size(28.dp)
                                     .clip(CircleShape)
