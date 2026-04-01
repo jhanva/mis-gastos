@@ -12,16 +12,19 @@ import com.johan.misgastos.utils.endOfDayMillis
 import com.johan.misgastos.utils.epochMillisToLocalDate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 enum class ExpenseGroupingMode(val label: String) {
     FLAT("Lista"),
-    DAY("Por día"),
+    DAY("Por dia"),
 }
 
 data class ExpensesUiState(
@@ -31,24 +34,47 @@ data class ExpensesUiState(
     val groupingMode: ExpenseGroupingMode = ExpenseGroupingMode.FLAT,
 )
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class ExpensesViewModel @Inject constructor(
     expenseRepository: ExpenseRepository,
     categoryRepository: CategoryRepository,
 ) : ViewModel() {
 
-    private val filters = MutableStateFlow(ExpenseFilters())
+    private val searchQuery = MutableStateFlow("")
+    private val otherFilters = MutableStateFlow(ExpenseFilters())
     private val groupingMode = MutableStateFlow(ExpenseGroupingMode.FLAT)
+
+    private val visibleFilters =
+        combine(searchQuery, otherFilters) { currentSearchQuery, currentOtherFilters ->
+            currentOtherFilters.copy(searchQuery = currentSearchQuery)
+        }
+
+    private val appliedFilters =
+        combine(
+            searchQuery.debounce(250).distinctUntilChanged(),
+            otherFilters,
+        ) { debouncedSearchQuery, currentOtherFilters ->
+            currentOtherFilters.copy(searchQuery = debouncedSearchQuery)
+        }.distinctUntilChanged()
+
+    private val filteredExpenses =
+        combine(
+            expenseRepository.observeExpenses(),
+            appliedFilters,
+        ) { expenses, currentFilters ->
+            applyFilters(expenses, currentFilters)
+        }
 
     val uiState: StateFlow<ExpensesUiState> =
         combine(
-            expenseRepository.observeExpenses(),
+            filteredExpenses,
             categoryRepository.observeCategories(includeInactive = true),
-            filters,
+            visibleFilters,
             groupingMode,
         ) { expenses, categories, currentFilters, currentGroupingMode ->
             ExpensesUiState(
-                expenses = applyFilters(expenses, currentFilters),
+                expenses = expenses,
                 categories = categories,
                 filters = currentFilters,
                 groupingMode = currentGroupingMode,
@@ -60,23 +86,23 @@ class ExpensesViewModel @Inject constructor(
         )
 
     fun updateSearchQuery(value: String) {
-        filters.update { it.copy(searchQuery = value) }
+        searchQuery.value = value
     }
 
     fun updateCategory(categoryId: Long?) {
-        filters.update { it.copy(categoryId = categoryId) }
+        otherFilters.update { it.copy(categoryId = categoryId) }
     }
 
     fun updateStartDate(dateMillis: Long?) {
-        filters.update { it.copy(startDateMillis = dateMillis) }
+        otherFilters.update { it.copy(startDateMillis = dateMillis) }
     }
 
     fun updateEndDate(dateMillis: Long?) {
-        filters.update { it.copy(endDateMillis = dateMillis) }
+        otherFilters.update { it.copy(endDateMillis = dateMillis) }
     }
 
     fun updateSortOption(sortOption: ExpenseSortOption) {
-        filters.update { it.copy(sortOption = sortOption) }
+        otherFilters.update { it.copy(sortOption = sortOption) }
     }
 
     fun updateGroupingMode(mode: ExpenseGroupingMode) {
@@ -84,7 +110,8 @@ class ExpensesViewModel @Inject constructor(
     }
 
     fun clearFilters() {
-        filters.value = ExpenseFilters()
+        searchQuery.value = ""
+        otherFilters.value = ExpenseFilters()
     }
 
     private fun applyFilters(expenses: List<Expense>, filters: ExpenseFilters): List<Expense> {
