@@ -1,6 +1,7 @@
 package com.johan.misgastos.ui.screens.expensedetail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -97,10 +98,18 @@ fun ExpenseDetailScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = "El gasto ya no existe.",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = "El gasto ya no existe.",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    FilledTonalButton(onClick = onClose) {
+                        Text("Volver")
+                    }
+                }
             }
         }
 
