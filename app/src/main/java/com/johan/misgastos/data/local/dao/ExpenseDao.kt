@@ -1,10 +1,9 @@
 package com.johan.misgastos.data.local.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Upsert
 import com.johan.misgastos.data.local.entity.ExpenseEntity
 import com.johan.misgastos.data.local.entity.ExpenseWithCategoryEntity
 import kotlinx.coroutines.flow.Flow
@@ -25,7 +24,7 @@ interface ExpenseDao {
     @Query("SELECT COUNT(*) FROM expenses WHERE categoryId = :categoryId")
     suspend fun countByCategory(categoryId: Long): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsert(expense: ExpenseEntity): Long
 
     @Query("DELETE FROM expenses WHERE id = :expenseId")
