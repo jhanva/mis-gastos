@@ -1,10 +1,11 @@
 package com.johan.misgastos.ui.screens.expensedetail
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -29,10 +30,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.johan.misgastos.domain.model.Expense
 import com.johan.misgastos.domain.model.UserPreferences
 import com.johan.misgastos.ui.LocalSnackbarController
-import com.johan.misgastos.ui.components.contentHorizontalPadding
+import com.johan.misgastos.ui.components.AppWidthSizeClass
 import com.johan.misgastos.ui.components.SectionCard
+import com.johan.misgastos.ui.components.contentHorizontalPadding
 import com.johan.misgastos.ui.components.rememberAppWidthSizeClass
 import com.johan.misgastos.utils.colorFromHex
 import com.johan.misgastos.utils.formatCurrency
@@ -67,7 +70,7 @@ fun ExpenseDetailScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Eliminar gasto") },
-            text = { Text("Esta acción no se puede deshacer.") },
+            text = { Text("Esta accion no se puede deshacer.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -118,87 +121,116 @@ fun ExpenseDetailScreen(
 
         else -> {
             val expense = checkNotNull(uiState.expense)
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    horizontal = contentHorizontalPadding(widthSizeClass),
-                    vertical = 24.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+            if (widthSizeClass == AppWidthSizeClass.EXPANDED) {
+                ExpandedExpenseDetailLayout(
+                    expense = expense,
+                    preferences = preferences,
+                    onEdit = onEdit,
+                    onDelete = { showDeleteDialog = true },
+                )
+            } else {
+                CompactExpenseDetailLayout(
+                    expense = expense,
+                    preferences = preferences,
+                    widthSizeClass = widthSizeClass,
+                    onEdit = onEdit,
+                    onDelete = { showDeleteDialog = true },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactExpenseDetailLayout(
+    expense: Expense,
+    preferences: UserPreferences,
+    widthSizeClass: AppWidthSizeClass,
+    onEdit: (Long) -> Unit,
+    onDelete: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(widthSizeClass),
+            vertical = 24.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            Text(
+                text = "Detalle del gasto",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
+        item { ExpenseSummarySection(expense = expense, preferences = preferences) }
+        item { ExpenseCategorySection(expense = expense) }
+        item { ExpenseInformationSection(expense = expense, preferences = preferences) }
+        item {
+            FilledTonalButton(
+                onClick = { onEdit(expense.id) },
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                item {
-                    Text(
-                        text = "Detalle del gasto",
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
+                Text("Editar gasto")
+            }
+        }
+        item {
+            OutlinedButton(
+                onClick = onDelete,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Eliminar gasto")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExpandedExpenseDetailLayout(
+    expense: Expense,
+    preferences: UserPreferences,
+    onEdit: (Long) -> Unit,
+    onDelete: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(AppWidthSizeClass.EXPANDED),
+            vertical = 24.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            Text(
+                text = "Detalle del gasto",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    ExpenseSummarySection(expense = expense, preferences = preferences)
+                    ExpenseCategorySection(expense = expense)
                 }
-                item {
-                    SectionCard(
-                        title = "Resumen",
-                        subtitle = expense.title,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(MaterialTheme.shapes.extraLarge)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .padding(18.dp)
-                                .fillMaxWidth(),
-                        ) {
-                            Text(
-                                text = formatCurrency(expense.amountInCents, preferences.currencyCode),
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
-                }
-                item {
-                    SectionCard(
-                        title = "Categoría",
-                        subtitle = "Organiza el gasto dentro de tu historial.",
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(MaterialTheme.shapes.large)
-                                .background(colorFromHex(expense.category.colorHex).copy(alpha = 0.14f))
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                        ) {
-                            Text(
-                                text = "${symbolForCategory(expense.category.iconName)}  ${expense.category.name}",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = colorFromHex(expense.category.colorHex),
-                            )
-                        }
-                    }
-                }
-                item {
-                    SectionCard(
-                        title = "Información",
-                        subtitle = "Fecha, hora y forma de pago.",
-                    ) {
-                        ExpenseDetailLine("Fecha", formatDate(expense.occurredAt, preferences.datePattern))
-                        ExpenseDetailLine("Hora", formatTime(expense.occurredAt))
-                        ExpenseDetailLine("Pago", expense.paymentMethod.label)
-                        if (!expense.description.isNullOrBlank()) {
-                            ExpenseDetailLine("Descripción", expense.description)
-                        }
-                        if (!expense.notes.isNullOrBlank()) {
-                            ExpenseDetailLine("Nota", expense.notes)
-                        }
-                    }
-                }
-                item {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    ExpenseInformationSection(expense = expense, preferences = preferences)
                     FilledTonalButton(
                         onClick = { onEdit(expense.id) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Editar gasto")
                     }
-                }
-                item {
                     OutlinedButton(
-                        onClick = { showDeleteDialog = true },
+                        onClick = onDelete,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Eliminar gasto")
@@ -210,11 +242,83 @@ fun ExpenseDetailScreen(
 }
 
 @Composable
+private fun ExpenseSummarySection(
+    expense: Expense,
+    preferences: UserPreferences,
+) {
+    SectionCard(
+        title = "Resumen",
+        subtitle = expense.title,
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.extraLarge)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .padding(18.dp)
+                .fillMaxWidth(),
+        ) {
+            Text(
+                text = formatCurrency(expense.amountInCents, preferences.currencyCode),
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpenseCategorySection(
+    expense: Expense,
+) {
+    val categoryColor = colorFromHex(expense.category.colorHex)
+
+    SectionCard(
+        title = "Categoria",
+        subtitle = "Organiza el gasto dentro de tu historial.",
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.large)
+                .background(categoryColor.copy(alpha = 0.14f))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            Text(
+                text = "${symbolForCategory(expense.category.iconName)}  ${expense.category.name}",
+                style = MaterialTheme.typography.titleMedium,
+                color = categoryColor,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpenseInformationSection(
+    expense: Expense,
+    preferences: UserPreferences,
+) {
+    SectionCard(
+        title = "Informacion",
+        subtitle = "Fecha, hora y forma de pago.",
+    ) {
+        ExpenseDetailLine("Fecha", formatDate(expense.occurredAt, preferences.datePattern))
+        ExpenseDetailLine("Hora", formatTime(expense.occurredAt))
+        ExpenseDetailLine("Pago", expense.paymentMethod.label)
+        if (!expense.description.isNullOrBlank()) {
+            ExpenseDetailLine("Descripcion", expense.description)
+        }
+        if (!expense.notes.isNullOrBlank()) {
+            ExpenseDetailLine("Nota", expense.notes)
+        }
+    }
+}
+
+@Composable
 private fun ExpenseDetailLine(
     label: String,
     value: String,
 ) {
-    androidx.compose.foundation.layout.Column(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
