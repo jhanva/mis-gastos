@@ -54,7 +54,7 @@ class SubscriptionsViewModel @Inject constructor(
         subscriptionId: Long?,
         name: String,
         amountInput: String,
-        billingDayInput: String,
+        billingDay: Int,
         paymentMethod: PaymentMethod,
     ) {
         viewModelScope.launch {
@@ -69,8 +69,7 @@ class SubscriptionsViewModel @Inject constructor(
                 return@launch
             }
 
-            val billingDay = billingDayInput.trim().toIntOrNull()
-            if (billingDay == null || billingDay !in 1..31) {
+            if (billingDay !in 1..31) {
                 _events.emit(SubscriptionsEvent.Message("El dia de cobro debe estar entre 1 y 31"))
                 return@launch
             }

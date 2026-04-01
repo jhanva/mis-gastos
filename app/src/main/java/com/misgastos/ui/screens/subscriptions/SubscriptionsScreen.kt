@@ -316,7 +316,7 @@ private fun SubscriptionListItemCard(
 private fun SubscriptionEditorDialog(
     subscription: Subscription?,
     onDismiss: () -> Unit,
-    onSave: (Long?, String, String, String, PaymentMethod) -> Unit,
+    onSave: (Long?, String, String, Int, PaymentMethod) -> Unit,
     onDelete: (Long) -> Unit,
 ) {
     var name by remember(subscription) { mutableStateOf(subscription?.name.orEmpty()) }
@@ -327,8 +327,8 @@ private fun SubscriptionEditorDialog(
             }.orEmpty(),
         )
     }
-    var billingDayInput by remember(subscription) {
-        mutableStateOf(subscription?.billingDay?.toString().orEmpty())
+    var billingDay by remember(subscription) {
+        mutableStateOf(subscription?.billingDay ?: 1)
     }
     var paymentMethod by remember(subscription) {
         mutableStateOf(
@@ -391,12 +391,9 @@ private fun SubscriptionEditorDialog(
                     )
                 }
                 item {
-                    OutlinedTextField(
-                        value = billingDayInput,
-                        onValueChange = { billingDayInput = it },
-                        label = { Text("Dia de cobro") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
+                    BillingDayField(
+                        billingDay = billingDay,
+                        onBillingDayChange = { billingDay = it },
                     )
                 }
                 item {
@@ -446,7 +443,7 @@ private fun SubscriptionEditorDialog(
                         subscription?.id,
                         name,
                         amountInput,
-                        billingDayInput,
+                        billingDay,
                         paymentMethod,
                     )
                 },
@@ -470,4 +467,64 @@ private fun SubscriptionEditorDialog(
             }
         },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BillingDayField(
+    billingDay: Int,
+    onBillingDayChange: (Int) -> Unit,
+) {
+    val dayOptions = remember { (1..31).toList() }
+    var isDayMenuExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Dia de cobro",
+            style = MaterialTheme.typography.labelLarge,
+        )
+        ExposedDropdownMenuBox(
+            expanded = isDayMenuExpanded,
+            onExpandedChange = {
+                isDayMenuExpanded = !isDayMenuExpanded
+            },
+        ) {
+            OutlinedTextField(
+                value = billingDay.toString(),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Dia") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(
+                        expanded = isDayMenuExpanded,
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            )
+
+            ExposedDropdownMenu(
+                expanded = isDayMenuExpanded,
+                onDismissRequest = { isDayMenuExpanded = false },
+            ) {
+                dayOptions.forEach { day ->
+                    DropdownMenuItem(
+                        text = { Text(day.toString()) },
+                        onClick = {
+                            onBillingDayChange(day)
+                            isDayMenuExpanded = false
+                        },
+                    )
+                }
+            }
+        }
+        Text(
+            text = "Selecciona el dia fijo en que normalmente cae el cobro.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
