@@ -7,10 +7,36 @@ import java.util.Currency
 import java.util.Locale
 
 fun parseAmountInputToCents(input: String): Long? {
-    val sanitized = input.trim()
-        .replace(" ", "")
-        .replace(".", "")
-        .replace(",", ".")
+    val compact = input.trim().replace(" ", "")
+    if (compact.isBlank()) return null
+    if (!compact.all { it.isDigit() || it == '.' || it == ',' }) return null
+
+    val lastDot = compact.lastIndexOf('.')
+    val lastComma = compact.lastIndexOf(',')
+    val decimalIndex = maxOf(lastDot, lastComma)
+    val digitsAfterLastSeparator = if (decimalIndex >= 0) compact.length - decimalIndex - 1 else 0
+    val hasSingleSeparatorType = (lastDot >= 0) xor (lastComma >= 0)
+
+    val sanitized = when {
+        decimalIndex < 0 -> compact
+        hasSingleSeparatorType && digitsAfterLastSeparator == 3 ->
+            compact.replace(".", "").replace(",", "")
+        else -> {
+            val integerPart = compact.substring(0, decimalIndex)
+                .replace(".", "")
+                .replace(",", "")
+            val decimalPart = compact.substring(decimalIndex + 1)
+                .replace(".", "")
+                .replace(",", "")
+            buildString {
+                append(if (integerPart.isBlank()) "0" else integerPart)
+                if (decimalPart.isNotEmpty()) {
+                    append('.')
+                    append(decimalPart)
+                }
+            }
+        }
+    }
 
     val decimalValue = sanitized.toBigDecimalOrNull() ?: return null
     if (decimalValue <= BigDecimal.ZERO) return null
