@@ -249,8 +249,9 @@ private fun CategoryEditorDialog(
                     )
                 }
                 item {
-                    Row(
+                    FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         categoryColorOptions.forEach { color ->
                             val hex = "#%02X%02X%02X".format(
