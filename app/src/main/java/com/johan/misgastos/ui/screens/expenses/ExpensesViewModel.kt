@@ -1,5 +1,6 @@
 package com.johan.misgastos.ui.screens.expenses
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.johan.misgastos.domain.model.Category
@@ -32,18 +33,34 @@ data class ExpensesUiState(
     val categories: List<Category> = emptyList(),
     val filters: ExpenseFilters = ExpenseFilters(),
     val groupingMode: ExpenseGroupingMode = ExpenseGroupingMode.FLAT,
+    val areFiltersVisible: Boolean = false,
 )
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class ExpensesViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     expenseRepository: ExpenseRepository,
     categoryRepository: CategoryRepository,
 ) : ViewModel() {
 
-    private val searchQuery = MutableStateFlow("")
-    private val otherFilters = MutableStateFlow(ExpenseFilters())
-    private val groupingMode = MutableStateFlow(ExpenseGroupingMode.FLAT)
+    private val searchQuery = MutableStateFlow(savedStateHandle[KEY_SEARCH_QUERY] ?: "")
+    private val otherFilters = MutableStateFlow(
+        ExpenseFilters(
+            categoryId = savedStateHandle[KEY_CATEGORY_ID],
+            startDateMillis = savedStateHandle[KEY_START_DATE_MILLIS],
+            endDateMillis = savedStateHandle[KEY_END_DATE_MILLIS],
+            sortOption = savedStateHandle.get<String>(KEY_SORT_OPTION)
+                ?.let(::expenseSortOptionFromName)
+                ?: ExpenseSortOption.NEWEST,
+        ),
+    )
+    private val groupingMode = MutableStateFlow(
+        savedStateHandle.get<String>(KEY_GROUPING_MODE)
+            ?.let(::expenseGroupingModeFromName)
+            ?: ExpenseGroupingMode.FLAT,
+    )
+    private val areFiltersVisible = MutableStateFlow(savedStateHandle[KEY_ARE_FILTERS_VISIBLE] ?: false)
 
     private val visibleFilters =
         combine(searchQuery, otherFilters) { currentSearchQuery, currentOtherFilters ->
@@ -72,12 +89,14 @@ class ExpensesViewModel @Inject constructor(
             categoryRepository.observeCategories(includeInactive = true),
             visibleFilters,
             groupingMode,
-        ) { expenses, categories, currentFilters, currentGroupingMode ->
+            areFiltersVisible,
+        ) { expenses, categories, currentFilters, currentGroupingMode, currentAreFiltersVisible ->
             ExpensesUiState(
                 expenses = expenses,
                 categories = categories,
                 filters = currentFilters,
                 groupingMode = currentGroupingMode,
+                areFiltersVisible = currentAreFiltersVisible,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -87,31 +106,41 @@ class ExpensesViewModel @Inject constructor(
 
     fun updateSearchQuery(value: String) {
         searchQuery.value = value
+        savedStateHandle[KEY_SEARCH_QUERY] = value
     }
 
     fun updateCategory(categoryId: Long?) {
-        otherFilters.update { it.copy(categoryId = categoryId) }
+        otherFilters.updateAndPersist { it.copy(categoryId = categoryId) }
     }
 
     fun updateStartDate(dateMillis: Long?) {
-        otherFilters.update { it.copy(startDateMillis = dateMillis) }
+        otherFilters.updateAndPersist { it.copy(startDateMillis = dateMillis) }
     }
 
     fun updateEndDate(dateMillis: Long?) {
-        otherFilters.update { it.copy(endDateMillis = dateMillis) }
+        otherFilters.updateAndPersist { it.copy(endDateMillis = dateMillis) }
     }
 
     fun updateSortOption(sortOption: ExpenseSortOption) {
-        otherFilters.update { it.copy(sortOption = sortOption) }
+        otherFilters.updateAndPersist { it.copy(sortOption = sortOption) }
     }
 
     fun updateGroupingMode(mode: ExpenseGroupingMode) {
         groupingMode.value = mode
+        savedStateHandle[KEY_GROUPING_MODE] = mode.name
+    }
+
+    fun toggleFiltersVisibility() {
+        val nextValue = !areFiltersVisible.value
+        areFiltersVisible.value = nextValue
+        savedStateHandle[KEY_ARE_FILTERS_VISIBLE] = nextValue
     }
 
     fun clearFilters() {
         searchQuery.value = ""
+        savedStateHandle[KEY_SEARCH_QUERY] = ""
         otherFilters.value = ExpenseFilters()
+        persistFilters(otherFilters.value)
     }
 
     private fun applyFilters(expenses: List<Expense>, filters: ExpenseFilters): List<Expense> {
@@ -144,6 +173,39 @@ class ExpensesViewModel @Inject constructor(
             ExpenseSortOption.OLDEST -> filtered.sortedBy { it.occurredAt }
             ExpenseSortOption.AMOUNT_DESC -> filtered.sortedByDescending { it.amountInCents }
             ExpenseSortOption.AMOUNT_ASC -> filtered.sortedBy { it.amountInCents }
+        }
+    }
+
+    private fun MutableStateFlow<ExpenseFilters>.updateAndPersist(
+        transform: (ExpenseFilters) -> ExpenseFilters,
+    ) {
+        update { currentFilters ->
+            transform(currentFilters).also(::persistFilters)
+        }
+    }
+
+    private fun persistFilters(filters: ExpenseFilters) {
+        savedStateHandle[KEY_CATEGORY_ID] = filters.categoryId
+        savedStateHandle[KEY_START_DATE_MILLIS] = filters.startDateMillis
+        savedStateHandle[KEY_END_DATE_MILLIS] = filters.endDateMillis
+        savedStateHandle[KEY_SORT_OPTION] = filters.sortOption.name
+    }
+
+    private companion object {
+        const val KEY_SEARCH_QUERY = "expenses_search_query"
+        const val KEY_CATEGORY_ID = "expenses_category_id"
+        const val KEY_START_DATE_MILLIS = "expenses_start_date_millis"
+        const val KEY_END_DATE_MILLIS = "expenses_end_date_millis"
+        const val KEY_SORT_OPTION = "expenses_sort_option"
+        const val KEY_GROUPING_MODE = "expenses_grouping_mode"
+        const val KEY_ARE_FILTERS_VISIBLE = "expenses_are_filters_visible"
+
+        fun expenseSortOptionFromName(name: String): ExpenseSortOption {
+            return ExpenseSortOption.entries.firstOrNull { it.name == name } ?: ExpenseSortOption.NEWEST
+        }
+
+        fun expenseGroupingModeFromName(name: String): ExpenseGroupingMode {
+            return ExpenseGroupingMode.entries.firstOrNull { it.name == name } ?: ExpenseGroupingMode.FLAT
         }
     }
 }

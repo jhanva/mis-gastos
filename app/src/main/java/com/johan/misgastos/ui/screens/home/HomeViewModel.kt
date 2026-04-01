@@ -32,6 +32,7 @@ class HomeViewModel @Inject constructor(
                 HomeUiState(
                     dashboard = HomeDashboard(
                         todayTotalInCents = metrics.todayTotalInCents,
+                        weekTotalInCents = metrics.weekTotalInCents,
                         monthTotalInCents = metrics.monthTotalInCents,
                         recentExpenses = metrics.recentItems,
                     ),

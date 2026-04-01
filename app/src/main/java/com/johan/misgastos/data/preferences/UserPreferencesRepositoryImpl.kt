@@ -28,12 +28,6 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun setCurrencyCode(currencyCode: String) {
-        context.userPreferencesDataStore.edit { prefs ->
-            prefs[PreferencesKeys.CURRENCY_CODE] = currencyCode.uppercase().trim()
-        }
-    }
-
     override suspend fun setDatePattern(pattern: String) {
         context.userPreferencesDataStore.edit { prefs ->
             prefs[PreferencesKeys.DATE_PATTERN] = pattern
@@ -45,14 +39,13 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             themeMode = AppThemeMode.fromValue(
                 preferences[PreferencesKeys.THEME_MODE] ?: AppThemeMode.SYSTEM.value,
             ),
-            currencyCode = preferences[PreferencesKeys.CURRENCY_CODE] ?: "COP",
+            currencyCode = "COP",
             datePattern = preferences[PreferencesKeys.DATE_PATTERN] ?: "dd/MM/yyyy",
         )
     }
 
     private object PreferencesKeys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
-        val CURRENCY_CODE = stringPreferencesKey("currency_code")
         val DATE_PATTERN = stringPreferencesKey("date_pattern")
     }
 }

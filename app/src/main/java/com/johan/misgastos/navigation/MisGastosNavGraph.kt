@@ -17,6 +17,7 @@ import com.johan.misgastos.ui.screens.expenseeditor.ExpenseEditorScreen
 import com.johan.misgastos.ui.screens.expenses.ExpensesScreen
 import com.johan.misgastos.ui.screens.home.HomeScreen
 import com.johan.misgastos.ui.screens.settings.SettingsScreen
+import com.johan.misgastos.ui.screens.subscriptions.SubscriptionsScreen
 import com.johan.misgastos.ui.components.ResponsiveContentFrame
 
 @Composable
@@ -52,6 +53,9 @@ fun MisGastosNavGraph(
                         navController.navigate(AppDestination.ExpenseDetail.createRoute(expenseId))
                     },
                 )
+            }
+            composable(AppDestination.Subscriptions.route) {
+                SubscriptionsScreen(preferences = preferences)
             }
             composable(AppDestination.Categories.route) {
                 CategoriesScreen()

@@ -112,7 +112,7 @@ private fun HomeOverviewSection(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Control rapido, limpio y 100% offline.",
+            text = "Control rapido y claro de tus movimientos.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -121,6 +121,7 @@ private fun HomeOverviewSection(
         }
         HomeMetricsSection(
             todayValue = formatCurrency(dashboard.todayTotalInCents, preferences.currencyCode),
+            weekValue = formatCurrency(dashboard.weekTotalInCents, preferences.currencyCode),
             monthValue = formatCurrency(dashboard.monthTotalInCents, preferences.currencyCode),
             widthSizeClass = widthSizeClass,
         )
@@ -130,6 +131,7 @@ private fun HomeOverviewSection(
 @Composable
 private fun HomeMetricsSection(
     todayValue: String,
+    weekValue: String,
     monthValue: String,
     widthSizeClass: AppWidthSizeClass,
 ) {
@@ -140,6 +142,10 @@ private fun HomeMetricsSection(
             SummaryMetricCard(
                 label = "Hoy",
                 value = todayValue,
+            )
+            SummaryMetricCard(
+                label = "Esta semana",
+                value = weekValue,
             )
             SummaryMetricCard(
                 label = "Este mes",
@@ -154,6 +160,11 @@ private fun HomeMetricsSection(
             SummaryMetricCard(
                 label = "Hoy",
                 value = todayValue,
+                modifier = Modifier.weight(1f),
+            )
+            SummaryMetricCard(
+                label = "Esta semana",
+                value = weekValue,
                 modifier = Modifier.weight(1f),
             )
             SummaryMetricCard(

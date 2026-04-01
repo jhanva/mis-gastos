@@ -2,6 +2,7 @@ package com.johan.misgastos.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AmountUtilsTest {
@@ -43,5 +44,15 @@ class AmountUtilsTest {
     fun `formatAmountInputFromCents removes unnecessary decimals`() {
         assertEquals("1250", formatAmountInputFromCents(125000L))
         assertEquals("1299,5", formatAmountInputFromCents(129950L))
+    }
+
+    @Test
+    fun `formatCurrency renders values in COP`() {
+        val formatted = formatCurrency(
+            amountInCents = 125000L,
+            currencyCode = "COP",
+        )
+
+        assertTrue(formatted.contains("1.250") || formatted.contains("1,250"))
     }
 }

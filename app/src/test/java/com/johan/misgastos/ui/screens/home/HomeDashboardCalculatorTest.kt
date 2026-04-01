@@ -33,6 +33,7 @@ class HomeDashboardCalculatorTest {
         )
 
         assertEquals(4500L, metrics.todayTotalInCents)
+        assertEquals(4500L, metrics.weekTotalInCents)
         assertEquals(6700L, metrics.monthTotalInCents)
         assertEquals(listOf(1L, 2L, 3L), metrics.recentItems.map { it.id })
     }
@@ -47,8 +48,29 @@ class HomeDashboardCalculatorTest {
         )
 
         assertEquals(0L, metrics.todayTotalInCents)
+        assertEquals(0L, metrics.weekTotalInCents)
         assertEquals(0L, metrics.monthTotalInCents)
         assertEquals(emptyList<FakeExpense>(), metrics.recentItems)
+    }
+
+    @Test
+    fun `calculateDashboardMetrics separates weekly total from older items in the same month`() {
+        val today = LocalDate.of(2026, 3, 31)
+        val expenses = listOf(
+            expense(id = 1L, amountInCents = 4000L, date = LocalDate.of(2026, 3, 30), time = LocalTime.NOON),
+            expense(id = 2L, amountInCents = 2500L, date = LocalDate.of(2026, 3, 23), time = LocalTime.NOON),
+        )
+
+        val metrics = calculateDashboardMetrics(
+            items = expenses,
+            today = today,
+            dateSelector = { it.occurredAt },
+            amountSelector = { it.amountInCents },
+        )
+
+        assertEquals(0L, metrics.todayTotalInCents)
+        assertEquals(4000L, metrics.weekTotalInCents)
+        assertEquals(6500L, metrics.monthTotalInCents)
     }
 
     private fun expense(

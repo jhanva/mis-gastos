@@ -17,8 +17,9 @@ Aplicacion Android para registrar gastos personales de forma local y sin depende
 - Registro, edicion y eliminacion de gastos
 - Clasificacion por categorias
 - Filtros, orden y agrupacion del historial
-- Configuracion de tema, moneda y formato de fecha
-- Soporte offline con datos locales
+- Configuracion de tema y formato de fecha
+- Montos mostrados siempre en COP
+- Datos locales con Room y DataStore
 
 ## Stack tecnico
 

@@ -5,23 +5,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +83,7 @@ fun ExpensesScreen(
             onEndDateChange = viewModel::updateEndDate,
             onSortOptionChange = viewModel::updateSortOption,
             onGroupingModeChange = viewModel::updateGroupingMode,
+            onToggleFiltersVisibility = viewModel::toggleFiltersVisibility,
             onClearFilters = viewModel::clearFilters,
         )
     } else {
@@ -95,6 +100,7 @@ fun ExpensesScreen(
             onEndDateChange = viewModel::updateEndDate,
             onSortOptionChange = viewModel::updateSortOption,
             onGroupingModeChange = viewModel::updateGroupingMode,
+            onToggleFiltersVisibility = viewModel::toggleFiltersVisibility,
             onClearFilters = viewModel::clearFilters,
         )
     }
@@ -115,6 +121,7 @@ private fun CompactExpensesLayout(
     onEndDateChange: (Long?) -> Unit,
     onSortOptionChange: (ExpenseSortOption) -> Unit,
     onGroupingModeChange: (ExpenseGroupingMode) -> Unit,
+    onToggleFiltersVisibility: () -> Unit,
     onClearFilters: () -> Unit,
 ) {
     LazyColumn(
@@ -131,19 +138,29 @@ private fun CompactExpensesLayout(
                 style = MaterialTheme.typography.headlineMedium,
             )
         }
-        item(contentType = "filters") {
-            ExpensesFiltersSection(
+        item(contentType = "filter_toggle") {
+            ExpensesFilterToolbar(
                 preferences = preferences,
                 uiState = uiState,
-                context = context,
-                onSearchQueryChange = onSearchQueryChange,
-                onCategoryChange = onCategoryChange,
-                onStartDateChange = onStartDateChange,
-                onEndDateChange = onEndDateChange,
-                onSortOptionChange = onSortOptionChange,
-                onGroupingModeChange = onGroupingModeChange,
+                onToggleFiltersVisibility = onToggleFiltersVisibility,
                 onClearFilters = onClearFilters,
             )
+        }
+        if (uiState.areFiltersVisible) {
+            item(contentType = "filters") {
+                ExpensesFiltersSection(
+                    preferences = preferences,
+                    uiState = uiState,
+                    context = context,
+                    onSearchQueryChange = onSearchQueryChange,
+                    onCategoryChange = onCategoryChange,
+                    onStartDateChange = onStartDateChange,
+                    onEndDateChange = onEndDateChange,
+                    onSortOptionChange = onSortOptionChange,
+                    onGroupingModeChange = onGroupingModeChange,
+                    onClearFilters = onClearFilters,
+                )
+            }
         }
         expenseResultItems(
             preferences = preferences,
@@ -168,63 +185,111 @@ private fun ExpandedExpensesLayout(
     onEndDateChange: (Long?) -> Unit,
     onSortOptionChange: (ExpenseSortOption) -> Unit,
     onGroupingModeChange: (ExpenseGroupingMode) -> Unit,
+    onToggleFiltersVisibility: () -> Unit,
     onClearFilters: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = contentHorizontalPadding(AppWidthSizeClass.EXPANDED), vertical = 24.dp),
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(AppWidthSizeClass.EXPANDED),
+            vertical = 24.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "Historial de gastos",
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .width(320.dp)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp),
-            ) {
-                item(contentType = "filters") {
-                    ExpensesFiltersSection(
-                        preferences = preferences,
-                        uiState = uiState,
-                        context = context,
-                        onSearchQueryChange = onSearchQueryChange,
-                        onCategoryChange = onCategoryChange,
-                        onStartDateChange = onStartDateChange,
-                        onEndDateChange = onEndDateChange,
-                        onSortOptionChange = onSortOptionChange,
-                        onGroupingModeChange = onGroupingModeChange,
-                        onClearFilters = onClearFilters,
-                    )
-                }
-            }
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp),
-            ) {
-                expenseResultItems(
+        item(contentType = "screen_header") {
+            Text(
+                text = "Historial de gastos",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
+        item(contentType = "filter_toggle") {
+            ExpensesFilterToolbar(
+                preferences = preferences,
+                uiState = uiState,
+                onToggleFiltersVisibility = onToggleFiltersVisibility,
+                onClearFilters = onClearFilters,
+            )
+        }
+        if (uiState.areFiltersVisible) {
+            item(contentType = "filters") {
+                ExpensesFiltersSection(
                     preferences = preferences,
                     uiState = uiState,
-                    dayGroups = dayGroups,
-                    onExpenseClick = onExpenseClick,
+                    context = context,
+                    onSearchQueryChange = onSearchQueryChange,
+                    onCategoryChange = onCategoryChange,
+                    onStartDateChange = onStartDateChange,
+                    onEndDateChange = onEndDateChange,
+                    onSortOptionChange = onSortOptionChange,
+                    onGroupingModeChange = onGroupingModeChange,
+                    onClearFilters = onClearFilters,
                 )
+            }
+        }
+        expenseResultItems(
+            preferences = preferences,
+            uiState = uiState,
+            dayGroups = dayGroups,
+            onExpenseClick = onExpenseClick,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExpensesFilterToolbar(
+    preferences: UserPreferences,
+    uiState: ExpensesUiState,
+    onToggleFiltersVisibility: () -> Unit,
+    onClearFilters: () -> Unit,
+) {
+    val activeFilterCount = remember(uiState.filters, uiState.groupingMode) {
+        uiState.activeFilterCount()
+    }
+
+    SectionCard(
+        title = "Busqueda y filtros",
+        subtitle = if (activeFilterCount > 0) {
+            "$activeFilterCount ajuste(s) activo(s)."
+        } else {
+            "Abre el panel solo cuando lo necesites."
+        },
+    ) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilledTonalButton(onClick = onToggleFiltersVisibility) {
+                Text(if (uiState.areFiltersVisible) "Ocultar filtros" else "Abrir filtros")
+            }
+
+            if (activeFilterCount > 0) {
+                FilterChip(
+                    selected = false,
+                    onClick = onClearFilters,
+                    label = { Text("Limpiar filtros") },
+                )
+            }
+        }
+
+        if (!uiState.areFiltersVisible && activeFilterCount > 0) {
+            FlowRow(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                uiState.activeFilterLabels(preferences).forEach { label ->
+                    AssistChip(
+                        onClick = onToggleFiltersVisibility,
+                        label = { Text(label) },
+                    )
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ExpensesFiltersSection(
     preferences: UserPreferences,
@@ -238,6 +303,10 @@ private fun ExpensesFiltersSection(
     onGroupingModeChange: (ExpenseGroupingMode) -> Unit,
     onClearFilters: () -> Unit,
 ) {
+    val selectedCategory = uiState.categories.firstOrNull { it.id == uiState.filters.categoryId }
+    val categoryLabel = selectedCategory?.let(::categoryFilterLabel) ?: "Todas"
+    val (isCategoryMenuExpanded, setCategoryMenuExpanded) = remember { mutableStateOf(false) }
+
     SectionCard(
         title = "Filtros y busqueda",
         subtitle = "Busca por texto, categoria, fecha o cambia el orden del listado.",
@@ -255,22 +324,44 @@ private fun ExpensesFiltersSection(
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(top = 12.dp),
         )
-        FlowRow(
+        ExposedDropdownMenuBox(
+            expanded = isCategoryMenuExpanded,
+            onExpandedChange = { setCategoryMenuExpanded(!isCategoryMenuExpanded) },
             modifier = Modifier.padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            FilterChip(
-                selected = uiState.filters.categoryId == null,
-                onClick = { onCategoryChange(null) },
-                label = { Text("Todas") },
+            OutlinedTextField(
+                value = categoryLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Categoria") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = isCategoryMenuExpanded)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
             )
-            uiState.categories.forEach { category ->
-                FilterChip(
-                    selected = uiState.filters.categoryId == category.id,
-                    onClick = { onCategoryChange(category.id) },
-                    label = { Text(categoryFilterLabel(category)) },
+
+            ExposedDropdownMenu(
+                expanded = isCategoryMenuExpanded,
+                onDismissRequest = { setCategoryMenuExpanded(false) },
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Todas") },
+                    onClick = {
+                        onCategoryChange(null)
+                        setCategoryMenuExpanded(false)
+                    },
                 )
+                uiState.categories.forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(categoryFilterLabel(category)) },
+                        onClick = {
+                            onCategoryChange(category.id)
+                            setCategoryMenuExpanded(false)
+                        },
+                    )
+                }
             }
         }
 
@@ -442,4 +533,47 @@ private fun ExpenseSortOption.toDayGroupingSortMode(): DayGroupingSortMode {
 
 private fun categoryFilterLabel(category: Category): String {
     return if (category.isActive) category.name else "${category.name} (inactiva)"
+}
+
+private fun ExpensesUiState.activeFilterCount(): Int {
+    var count = 0
+    if (filters.searchQuery.isNotBlank()) count += 1
+    if (filters.categoryId != null) count += 1
+    if (filters.startDateMillis != null) count += 1
+    if (filters.endDateMillis != null) count += 1
+    if (filters.sortOption != ExpenseSortOption.NEWEST) count += 1
+    if (groupingMode != ExpenseGroupingMode.FLAT) count += 1
+    return count
+}
+
+private fun ExpensesUiState.activeFilterLabels(
+    preferences: UserPreferences,
+): List<String> {
+    val labels = mutableListOf<String>()
+
+    if (filters.searchQuery.isNotBlank()) {
+        labels += "Texto: ${filters.searchQuery}"
+    }
+
+    filters.categoryId
+        ?.let { categoryId -> categories.firstOrNull { it.id == categoryId } }
+        ?.let { category -> labels += "Categoria: ${categoryFilterLabel(category)}" }
+
+    filters.startDateMillis?.let { startDateMillis ->
+        labels += "Desde ${formatDate(startDateMillis, preferences.datePattern)}"
+    }
+
+    filters.endDateMillis?.let { endDateMillis ->
+        labels += "Hasta ${formatDate(endDateMillis, preferences.datePattern)}"
+    }
+
+    if (filters.sortOption != ExpenseSortOption.NEWEST) {
+        labels += "Orden: ${filters.sortOption.label}"
+    }
+
+    if (groupingMode != ExpenseGroupingMode.FLAT) {
+        labels += "Vista: ${groupingMode.label}"
+    }
+
+    return labels
 }

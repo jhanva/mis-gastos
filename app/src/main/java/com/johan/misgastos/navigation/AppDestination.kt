@@ -3,6 +3,7 @@ package com.johan.misgastos.navigation
 sealed class AppDestination(val route: String) {
     data object Home : AppDestination("home")
     data object Expenses : AppDestination("expenses")
+    data object Subscriptions : AppDestination("subscriptions")
     data object Categories : AppDestination("categories")
     data object Settings : AppDestination("settings")
 

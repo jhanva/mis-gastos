@@ -7,6 +7,5 @@ import kotlinx.coroutines.flow.Flow
 interface UserPreferencesRepository {
     val preferences: Flow<UserPreferences>
     suspend fun setThemeMode(themeMode: AppThemeMode)
-    suspend fun setCurrencyCode(currencyCode: String)
     suspend fun setDatePattern(pattern: String)
 }

@@ -3,10 +3,13 @@ package com.johan.misgastos.ui.screens.home
 import com.johan.misgastos.utils.endOfDayMillis
 import com.johan.misgastos.utils.monthRangeMillis
 import com.johan.misgastos.utils.startOfDayMillis
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 data class DashboardMetrics<T>(
     val todayTotalInCents: Long,
+    val weekTotalInCents: Long,
     val monthTotalInCents: Long,
     val recentItems: List<T>,
 )
@@ -20,9 +23,12 @@ fun <T> calculateDashboardMetrics(
 ): DashboardMetrics<T> {
     val todayStart = startOfDayMillis(today)
     val todayEnd = endOfDayMillis(today)
+    val weekStart = startOfDayMillis(today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
+    val weekEnd = endOfDayMillis(today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)))
     val monthRange = monthRangeMillis(today)
 
     var todayTotalInCents = 0L
+    var weekTotalInCents = 0L
     var monthTotalInCents = 0L
 
     items.forEach { item ->
@@ -32,6 +38,9 @@ fun <T> calculateDashboardMetrics(
         if (occurredAt in todayStart..todayEnd) {
             todayTotalInCents += amount
         }
+        if (occurredAt in weekStart..weekEnd) {
+            weekTotalInCents += amount
+        }
         if (occurredAt in monthRange) {
             monthTotalInCents += amount
         }
@@ -39,6 +48,7 @@ fun <T> calculateDashboardMetrics(
 
     return DashboardMetrics(
         todayTotalInCents = todayTotalInCents,
+        weekTotalInCents = weekTotalInCents,
         monthTotalInCents = monthTotalInCents,
         recentItems = items.take(recentLimit),
     )

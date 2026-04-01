@@ -8,19 +8,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,7 +39,6 @@ fun SettingsScreen(
 ) {
     val snackbarController = LocalSnackbarController.current
     val widthSizeClass = rememberAppWidthSizeClass()
-    var currencyInput by remember(preferences.currencyCode) { mutableStateOf(preferences.currencyCode) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -59,30 +51,14 @@ fun SettingsScreen(
     if (widthSizeClass == AppWidthSizeClass.EXPANDED) {
         ExpandedSettingsLayout(
             preferences = preferences,
-            currencyInput = currencyInput,
-            onCurrencyInputChange = { value ->
-                currencyInput = value
-                    .filter(Char::isLetter)
-                    .uppercase()
-                    .take(3)
-            },
             onThemeModeChange = viewModel::updateThemeMode,
-            onCurrencySave = { viewModel.updateCurrencyCode(currencyInput) },
             onDatePatternChange = viewModel::updateDatePattern,
         )
     } else {
         CompactSettingsLayout(
             preferences = preferences,
             widthSizeClass = widthSizeClass,
-            currencyInput = currencyInput,
-            onCurrencyInputChange = { value ->
-                currencyInput = value
-                    .filter(Char::isLetter)
-                    .uppercase()
-                    .take(3)
-            },
             onThemeModeChange = viewModel::updateThemeMode,
-            onCurrencySave = { viewModel.updateCurrencyCode(currencyInput) },
             onDatePatternChange = viewModel::updateDatePattern,
         )
     }
@@ -93,10 +69,7 @@ fun SettingsScreen(
 private fun CompactSettingsLayout(
     preferences: UserPreferences,
     widthSizeClass: AppWidthSizeClass,
-    currencyInput: String,
-    onCurrencyInputChange: (String) -> Unit,
     onThemeModeChange: (AppThemeMode) -> Unit,
-    onCurrencySave: () -> Unit,
     onDatePatternChange: (String) -> Unit,
 ) {
     LazyColumn(
@@ -120,20 +93,10 @@ private fun CompactSettingsLayout(
             )
         }
         item {
-            SettingsCurrencySection(
-                currencyInput = currencyInput,
-                onCurrencyInputChange = onCurrencyInputChange,
-                onCurrencySave = onCurrencySave,
-            )
-        }
-        item {
             SettingsDateFormatSection(
                 selectedPattern = preferences.datePattern,
                 onDatePatternChange = onDatePatternChange,
             )
-        }
-        item {
-            SettingsOfflineSection()
         }
     }
 }
@@ -142,10 +105,7 @@ private fun CompactSettingsLayout(
 @Composable
 private fun ExpandedSettingsLayout(
     preferences: UserPreferences,
-    currencyInput: String,
-    onCurrencyInputChange: (String) -> Unit,
     onThemeModeChange: (AppThemeMode) -> Unit,
-    onCurrencySave: () -> Unit,
     onDatePatternChange: (String) -> Unit,
 ) {
     LazyColumn(
@@ -175,17 +135,11 @@ private fun ExpandedSettingsLayout(
                         selectedThemeMode = preferences.themeMode,
                         onThemeModeChange = onThemeModeChange,
                     )
-                    SettingsOfflineSection()
                 }
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    SettingsCurrencySection(
-                        currencyInput = currencyInput,
-                        onCurrencyInputChange = onCurrencyInputChange,
-                        onCurrencySave = onCurrencySave,
-                    )
                     SettingsDateFormatSection(
                         selectedPattern = preferences.datePattern,
                         onDatePatternChange = onDatePatternChange,
@@ -221,32 +175,6 @@ private fun SettingsThemeSection(
     }
 }
 
-@Composable
-private fun SettingsCurrencySection(
-    currencyInput: String,
-    onCurrencyInputChange: (String) -> Unit,
-    onCurrencySave: () -> Unit,
-) {
-    SectionCard(
-        title = "Moneda",
-        subtitle = "Usa un codigo ISO de 3 letras para formatear valores.",
-    ) {
-        OutlinedTextField(
-            value = currencyInput,
-            onValueChange = onCurrencyInputChange,
-            label = { Text("Codigo de moneda") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-        )
-        FilledTonalButton(
-            onClick = onCurrencySave,
-            modifier = Modifier.padding(top = 12.dp),
-        ) {
-            Text("Guardar moneda")
-        }
-    }
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SettingsDateFormatSection(
@@ -269,19 +197,5 @@ private fun SettingsDateFormatSection(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun SettingsOfflineSection() {
-    SectionCard(
-        title = "Modo offline",
-        subtitle = "La app no depende de internet, login ni servicios remotos.",
-    ) {
-        Text(
-            text = "Todos los gastos, categorias y preferencias se guardan localmente con Room y DataStore.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }

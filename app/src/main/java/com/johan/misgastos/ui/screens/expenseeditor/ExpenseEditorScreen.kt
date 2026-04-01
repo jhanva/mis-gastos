@@ -397,7 +397,7 @@ private fun ExpensePrimaryDataSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PaymentMethod.entries.forEach { method ->
+            paymentMethodOptionsFor(uiState.paymentMethod).forEach { method ->
                 FilterChip(
                     selected = uiState.paymentMethod == method,
                     onClick = { onPaymentMethodChange(method) },
@@ -497,4 +497,12 @@ private fun ExpenseDeleteActionButton(
 
 private fun categoryChipLabel(category: Category): String {
     return if (category.isActive) category.name else "${category.name} (inactiva)"
+}
+
+private fun paymentMethodOptionsFor(currentMethod: PaymentMethod): List<PaymentMethod> {
+    return if (currentMethod == PaymentMethod.CARD) {
+        listOf(PaymentMethod.CARD) + PaymentMethod.selectableEntries
+    } else {
+        PaymentMethod.selectableEntries
+    }
 }

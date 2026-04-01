@@ -9,14 +9,14 @@ data class CategoryIconOption(
 )
 
 val categoryIconOptions = listOf(
-    CategoryIconOption("food", "Alimentación", "AL"),
-    CategoryIconOption("transport", "Transporte", "TR"),
-    CategoryIconOption("home", "Hogar", "HO"),
-    CategoryIconOption("health", "Salud", "SA"),
-    CategoryIconOption("shopping", "Compras", "CO"),
-    CategoryIconOption("services", "Servicios", "SE"),
-    CategoryIconOption("fun", "Ocio", "OC"),
-    CategoryIconOption("other", "Otro", "OT"),
+    CategoryIconOption("food", "Alimentacion", "🍽"),
+    CategoryIconOption("transport", "Transporte", "🚌"),
+    CategoryIconOption("home", "Hogar", "🏠"),
+    CategoryIconOption("health", "Salud", "❤️"),
+    CategoryIconOption("shopping", "Compras", "🛍"),
+    CategoryIconOption("services", "Servicios", "💡"),
+    CategoryIconOption("fun", "Ocio", "🎉"),
+    CategoryIconOption("other", "Otro", "🧩"),
 )
 
 val categoryColorOptions = listOf(
@@ -31,7 +31,7 @@ val categoryColorOptions = listOf(
 )
 
 fun symbolForCategory(iconName: String): String {
-    return categoryIconOptions.firstOrNull { it.key == iconName }?.symbol ?: "OT"
+    return categoryIconOptions.firstOrNull { it.key == iconName }?.symbol ?: "🧩"
 }
 
 fun colorFromHex(colorHex: String): Color {

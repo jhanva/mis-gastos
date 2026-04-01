@@ -63,6 +63,7 @@ fun MisGastosApp(
         listOf(
             TopLevelDestinationUi(AppDestination.Home, "Inicio", Icons.Outlined.Home),
             TopLevelDestinationUi(AppDestination.Expenses, "Gastos", Icons.AutoMirrored.Outlined.List),
+            TopLevelDestinationUi(AppDestination.Subscriptions, "Plataformas", Icons.Outlined.Add),
             TopLevelDestinationUi(AppDestination.Categories, "Categorias", Icons.Outlined.Edit),
             TopLevelDestinationUi(AppDestination.Settings, "Ajustes", Icons.Outlined.Settings),
         )

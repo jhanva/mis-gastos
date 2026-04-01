@@ -2,9 +2,11 @@ package com.johan.misgastos.data.repository
 
 import com.johan.misgastos.data.local.entity.CategoryEntity
 import com.johan.misgastos.data.local.entity.ExpenseWithCategoryEntity
+import com.johan.misgastos.data.local.entity.SubscriptionEntity
 import com.johan.misgastos.domain.model.Category
 import com.johan.misgastos.domain.model.Expense
 import com.johan.misgastos.domain.model.PaymentMethod
+import com.johan.misgastos.domain.model.Subscription
 
 fun CategoryEntity.toDomain(): Category {
     return Category(
@@ -30,5 +32,17 @@ fun ExpenseWithCategoryEntity.toDomain(): Expense {
         notes = expense.notes,
         createdAt = expense.createdAt,
         updatedAt = expense.updatedAt,
+    )
+}
+
+fun SubscriptionEntity.toDomain(): Subscription {
+    return Subscription(
+        id = id,
+        name = name,
+        monthlyAmountInCents = monthlyAmountInCents,
+        billingDay = billingDay,
+        paymentMethod = PaymentMethod.fromValue(paymentMethod),
+        createdAt = createdAt,
+        updatedAt = updatedAt,
     )
 }
