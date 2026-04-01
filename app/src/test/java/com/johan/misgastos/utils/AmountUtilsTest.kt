@@ -42,6 +42,6 @@ class AmountUtilsTest {
     @Test
     fun `formatAmountInputFromCents removes unnecessary decimals`() {
         assertEquals("1250", formatAmountInputFromCents(125000L))
-        assertEquals("1299.5", formatAmountInputFromCents(129950L))
+        assertEquals("1299,5", formatAmountInputFromCents(129950L))
     }
 }

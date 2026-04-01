@@ -49,7 +49,7 @@ fun parseAmountInputToCents(input: String): Long? {
 
 fun formatAmountInputFromCents(amountInCents: Long): String {
     val decimal = BigDecimal(amountInCents).divide(BigDecimal(100))
-    return decimal.stripTrailingZeros().toPlainString()
+    return decimal.stripTrailingZeros().toPlainString().replace('.', ',')
 }
 
 fun formatCurrency(
