@@ -20,6 +20,35 @@ data class CategoriesUiState(
     val categories: List<Category> = emptyList(),
 )
 
+internal data class CategoryAvailabilityItem(
+    val id: Long,
+    val isActive: Boolean,
+)
+
+internal fun wouldLeaveNoActiveCategories(
+    categories: List<CategoryAvailabilityItem>,
+    categoryId: Long?,
+    targetIsActive: Boolean,
+): Boolean {
+    val activeCount = categories.count(CategoryAvailabilityItem::isActive)
+    val existing = categoryId?.let { editedCategoryId -> categories.firstOrNull { it.id == editedCategoryId } }
+    val wasActive = existing?.isActive == true
+
+    return !targetIsActive && when {
+        wasActive -> activeCount <= 1
+        else -> activeCount == 0
+    }
+}
+
+internal fun deletingCategoryWouldLeaveNoActive(
+    categories: List<CategoryAvailabilityItem>,
+    categoryId: Long,
+): Boolean {
+    val activeCount = categories.count(CategoryAvailabilityItem::isActive)
+    val category = categories.firstOrNull { it.id == categoryId } ?: return false
+    return category.isActive && activeCount <= 1
+}
+
 sealed interface CategoriesEvent {
     data class Message(val value: String) : CategoriesEvent
 }
@@ -44,19 +73,28 @@ class CategoriesViewModel @Inject constructor(
     fun saveCategory(draft: CategoryDraft) {
         viewModelScope.launch {
             if (draft.name.isBlank()) {
-                _events.emit(CategoriesEvent.Message("La categoría necesita un nombre"))
+                _events.emit(CategoriesEvent.Message("La categoria necesita un nombre"))
+                return@launch
+            }
+            if (wouldLeaveNoActiveCategories(uiState.value.categories.toAvailabilityItems(), draft.id, draft.isActive)) {
+                _events.emit(CategoriesEvent.Message("Debe quedar al menos una categoria activa"))
                 return@launch
             }
 
             categoryRepository.saveCategory(draft)
-            _events.emit(CategoriesEvent.Message("Categoría guardada"))
+            _events.emit(CategoriesEvent.Message("Categoria guardada"))
         }
     }
 
     fun deleteCategory(categoryId: Long) {
         viewModelScope.launch {
+            if (deletingCategoryWouldLeaveNoActive(uiState.value.categories.toAvailabilityItems(), categoryId)) {
+                _events.emit(CategoriesEvent.Message("No puedes eliminar la ultima categoria activa"))
+                return@launch
+            }
+
             when (val result = categoryRepository.deleteCategory(categoryId)) {
-                CategoryDeletionResult.Deleted -> _events.emit(CategoriesEvent.Message("Categoría eliminada"))
+                CategoryDeletionResult.Deleted -> _events.emit(CategoriesEvent.Message("Categoria eliminada"))
                 is CategoryDeletionResult.InUse -> _events.emit(
                     CategoriesEvent.Message(
                         "No se puede eliminar: ${result.linkedExpenses} gasto(s) la usan",
@@ -64,5 +102,14 @@ class CategoriesViewModel @Inject constructor(
                 )
             }
         }
+    }
+}
+
+private fun List<Category>.toAvailabilityItems(): List<CategoryAvailabilityItem> {
+    return map { category ->
+        CategoryAvailabilityItem(
+            id = category.id,
+            isActive = category.isActive,
+        )
     }
 }
