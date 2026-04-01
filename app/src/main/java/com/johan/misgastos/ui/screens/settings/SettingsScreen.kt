@@ -83,12 +83,17 @@ fun SettingsScreen(
         item {
             SectionCard(
                 title = "Moneda",
-                subtitle = "Usa un código ISO de 3 letras para formatear valores.",
+                subtitle = "Usa un codigo ISO de 3 letras para formatear valores.",
             ) {
                 OutlinedTextField(
                     value = currencyInput,
-                    onValueChange = { currencyInput = it.uppercase() },
-                    label = { Text("Código de moneda") },
+                    onValueChange = { value ->
+                        currencyInput = value
+                            .filter(Char::isLetter)
+                            .uppercase()
+                            .take(3)
+                    },
+                    label = { Text("Codigo de moneda") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -125,7 +130,7 @@ fun SettingsScreen(
                 subtitle = "La app no depende de internet, login ni servicios remotos.",
             ) {
                 Text(
-                    text = "Todos los gastos, categorías y preferencias se guardan localmente con Room y DataStore.",
+                    text = "Todos los gastos, categorias y preferencias se guardan localmente con Room y DataStore.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
