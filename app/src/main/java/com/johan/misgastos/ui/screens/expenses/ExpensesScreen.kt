@@ -26,8 +26,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.johan.misgastos.domain.model.Category
 import com.johan.misgastos.domain.model.ExpenseSortOption
 import com.johan.misgastos.domain.model.UserPreferences
+import com.johan.misgastos.ui.components.contentHorizontalPadding
 import com.johan.misgastos.ui.components.ExpenseListItem
 import com.johan.misgastos.ui.components.SectionCard
+import com.johan.misgastos.ui.components.rememberAppWidthSizeClass
 import com.johan.misgastos.utils.epochMillisToLocalDate
 import com.johan.misgastos.utils.formatCurrency
 import com.johan.misgastos.utils.formatDate
@@ -43,6 +45,7 @@ fun ExpensesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val widthSizeClass = rememberAppWidthSizeClass()
     val dayGroups = remember(uiState.expenses, uiState.filters.sortOption, uiState.groupingMode) {
         if (uiState.groupingMode == ExpenseGroupingMode.DAY) {
             groupItemsByDay(
@@ -58,7 +61,10 @@ fun ExpensesScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(widthSizeClass),
+            vertical = 24.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {

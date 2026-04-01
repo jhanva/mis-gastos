@@ -31,7 +31,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.johan.misgastos.domain.model.UserPreferences
 import com.johan.misgastos.ui.LocalSnackbarController
+import com.johan.misgastos.ui.components.contentHorizontalPadding
 import com.johan.misgastos.ui.components.SectionCard
+import com.johan.misgastos.ui.components.rememberAppWidthSizeClass
 import com.johan.misgastos.utils.colorFromHex
 import com.johan.misgastos.utils.formatCurrency
 import com.johan.misgastos.utils.formatDate
@@ -47,6 +49,7 @@ fun ExpenseDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarController = LocalSnackbarController.current
+    val widthSizeClass = rememberAppWidthSizeClass()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -117,7 +120,10 @@ fun ExpenseDetailScreen(
             val expense = checkNotNull(uiState.expense)
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+                contentPadding = PaddingValues(
+                    horizontal = contentHorizontalPadding(widthSizeClass),
+                    vertical = 24.dp,
+                ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {

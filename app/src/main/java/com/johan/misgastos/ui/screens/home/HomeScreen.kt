@@ -18,9 +18,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.johan.misgastos.domain.model.UserPreferences
+import com.johan.misgastos.ui.components.AppWidthSizeClass
 import com.johan.misgastos.ui.components.ExpenseListItem
 import com.johan.misgastos.ui.components.SectionCard
 import com.johan.misgastos.ui.components.SummaryMetricCard
+import com.johan.misgastos.ui.components.contentHorizontalPadding
+import com.johan.misgastos.ui.components.rememberAppWidthSizeClass
 import com.johan.misgastos.utils.formatCurrency
 
 @Composable
@@ -32,10 +35,14 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dashboard = uiState.dashboard
+    val widthSizeClass = rememberAppWidthSizeClass()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(widthSizeClass),
+            vertical = 24.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
@@ -58,20 +65,35 @@ fun HomeScreen(
             }
         }
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SummaryMetricCard(
-                    label = "Hoy",
-                    value = formatCurrency(dashboard.todayTotalInCents, preferences.currencyCode),
-                    modifier = Modifier.weight(1f),
-                )
-                SummaryMetricCard(
-                    label = "Este mes",
-                    value = formatCurrency(dashboard.monthTotalInCents, preferences.currencyCode),
-                    modifier = Modifier.weight(1f),
-                )
+            if (widthSizeClass == AppWidthSizeClass.COMPACT) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    SummaryMetricCard(
+                        label = "Hoy",
+                        value = formatCurrency(dashboard.todayTotalInCents, preferences.currencyCode),
+                    )
+                    SummaryMetricCard(
+                        label = "Este mes",
+                        value = formatCurrency(dashboard.monthTotalInCents, preferences.currencyCode),
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    SummaryMetricCard(
+                        label = "Hoy",
+                        value = formatCurrency(dashboard.todayTotalInCents, preferences.currencyCode),
+                        modifier = Modifier.weight(1f),
+                    )
+                    SummaryMetricCard(
+                        label = "Este mes",
+                        value = formatCurrency(dashboard.monthTotalInCents, preferences.currencyCode),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
         item {

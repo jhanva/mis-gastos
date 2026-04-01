@@ -37,7 +37,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.johan.misgastos.domain.model.Category
 import com.johan.misgastos.domain.model.CategoryDraft
 import com.johan.misgastos.ui.LocalSnackbarController
+import com.johan.misgastos.ui.components.contentHorizontalPadding
 import com.johan.misgastos.ui.components.SectionCard
+import com.johan.misgastos.ui.components.rememberAppWidthSizeClass
 import com.johan.misgastos.utils.categoryColorOptions
 import com.johan.misgastos.utils.categoryIconOptions
 import com.johan.misgastos.utils.colorFromHex
@@ -49,6 +51,7 @@ fun CategoriesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarController = LocalSnackbarController.current
+    val widthSizeClass = rememberAppWidthSizeClass()
     var editingCategory by remember { mutableStateOf<Category?>(null) }
     var showDialog by remember { mutableStateOf(false) }
 
@@ -84,7 +87,10 @@ fun CategoriesScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(widthSizeClass),
+            vertical = 24.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {

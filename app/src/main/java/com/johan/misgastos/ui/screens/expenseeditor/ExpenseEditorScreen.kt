@@ -37,7 +37,9 @@ import com.johan.misgastos.domain.model.Category
 import com.johan.misgastos.domain.model.PaymentMethod
 import com.johan.misgastos.domain.model.UserPreferences
 import com.johan.misgastos.ui.LocalSnackbarController
+import com.johan.misgastos.ui.components.contentHorizontalPadding
 import com.johan.misgastos.ui.components.SectionCard
+import com.johan.misgastos.ui.components.rememberAppWidthSizeClass
 import com.johan.misgastos.utils.epochMillisToLocalDate
 import com.johan.misgastos.utils.epochMillisToLocalTime
 import com.johan.misgastos.utils.formatDate
@@ -56,6 +58,7 @@ fun ExpenseEditorScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarController = LocalSnackbarController.current
     val context = LocalContext.current
+    val widthSizeClass = rememberAppWidthSizeClass()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDiscardChangesDialog by remember { mutableStateOf(false) }
 
@@ -149,7 +152,10 @@ fun ExpenseEditorScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(widthSizeClass),
+            vertical = 24.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {

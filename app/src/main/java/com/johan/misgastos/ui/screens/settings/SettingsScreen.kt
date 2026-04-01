@@ -25,7 +25,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.johan.misgastos.domain.model.AppThemeMode
 import com.johan.misgastos.domain.model.UserPreferences
 import com.johan.misgastos.ui.LocalSnackbarController
+import com.johan.misgastos.ui.components.contentHorizontalPadding
 import com.johan.misgastos.ui.components.SectionCard
+import com.johan.misgastos.ui.components.rememberAppWidthSizeClass
 
 private val datePatternOptions = listOf(
     "dd/MM/yyyy",
@@ -40,6 +42,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val snackbarController = LocalSnackbarController.current
+    val widthSizeClass = rememberAppWidthSizeClass()
     var currencyInput by remember(preferences.currencyCode) { mutableStateOf(preferences.currencyCode) }
 
     LaunchedEffect(Unit) {
@@ -52,7 +55,10 @@ fun SettingsScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+        contentPadding = PaddingValues(
+            horizontal = contentHorizontalPadding(widthSizeClass),
+            vertical = 24.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
