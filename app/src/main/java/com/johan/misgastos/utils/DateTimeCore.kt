@@ -7,9 +7,14 @@ import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.ConcurrentHashMap
 
 private val appZoneId: ZoneId
     get() = ZoneId.systemDefault()
+
+private val dateFormatterCache = ConcurrentHashMap<String, DateTimeFormatter>()
+private val dateTimeFormatterCache = ConcurrentHashMap<String, DateTimeFormatter>()
+private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 fun epochMillisToLocalDateTime(epochMillis: Long): LocalDateTime {
     return Instant.ofEpochMilli(epochMillis).atZone(appZoneId).toLocalDateTime()
@@ -41,14 +46,19 @@ fun monthRangeMillis(reference: LocalDate = LocalDate.now()): LongRange {
 }
 
 fun formatDate(epochMillis: Long, pattern: String): String {
-    return epochMillisToLocalDate(epochMillis).format(DateTimeFormatter.ofPattern(pattern))
+    val formatter = dateFormatterCache.getOrPut(pattern) {
+        DateTimeFormatter.ofPattern(pattern)
+    }
+    return epochMillisToLocalDate(epochMillis).format(formatter)
 }
 
 fun formatTime(epochMillis: Long): String {
-    return epochMillisToLocalTime(epochMillis).format(DateTimeFormatter.ofPattern("HH:mm"))
+    return epochMillisToLocalTime(epochMillis).format(timeFormatter)
 }
 
 fun formatDateTime(epochMillis: Long, pattern: String): String {
-    val formatter = DateTimeFormatter.ofPattern("$pattern HH:mm")
+    val formatter = dateTimeFormatterCache.getOrPut(pattern) {
+        DateTimeFormatter.ofPattern("$pattern HH:mm")
+    }
     return epochMillisToLocalDateTime(epochMillis).format(formatter)
 }

@@ -5,6 +5,16 @@ import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+
+private data class CurrencyFormatKey(
+    val currencyCode: String,
+    val locale: Locale,
+)
+
+private val currencyCache = ConcurrentHashMap<String, Currency>()
+private val currencyFormatterPrototypeCache = ConcurrentHashMap<CurrencyFormatKey, NumberFormat>()
+private val fallbackCurrency: Currency = Currency.getInstance("COP")
 
 fun parseAmountInputToCents(input: String): Long? {
     val compact = input.trim().replace(" ", "")
@@ -57,11 +67,21 @@ fun formatCurrency(
     currencyCode: String,
     locale: Locale = Locale("es", "CO"),
 ): String {
-    val formatter = NumberFormat.getCurrencyInstance(locale)
-    val currency = runCatching { Currency.getInstance(currencyCode) }.getOrDefault(Currency.getInstance("COP"))
-    formatter.currency = currency
-    formatter.maximumFractionDigits = 2
-    formatter.minimumFractionDigits = 0
+    val normalizedCurrencyCode = currencyCode.uppercase()
+    val formatter = currencyFormatterPrototypeCache.getOrPut(
+        CurrencyFormatKey(
+            currencyCode = normalizedCurrencyCode,
+            locale = locale,
+        ),
+    ) {
+        NumberFormat.getCurrencyInstance(locale).apply {
+            currency = currencyCache.getOrPut(normalizedCurrencyCode) {
+                runCatching { Currency.getInstance(normalizedCurrencyCode) }.getOrDefault(fallbackCurrency)
+            }
+            maximumFractionDigits = 2
+            minimumFractionDigits = 0
+        }
+    }.clone() as NumberFormat
 
     val decimal = BigDecimal(amountInCents).divide(BigDecimal(100))
     return formatter.format(decimal)
