@@ -1,7 +1,9 @@
 package com.johan.misgastos.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,7 +41,7 @@ fun SectionCard(
                     modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                 )
             } else {
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(top = 12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
             content()
         }
