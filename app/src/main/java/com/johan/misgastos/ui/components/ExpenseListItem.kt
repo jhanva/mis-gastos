@@ -16,6 +16,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +37,16 @@ fun ExpenseListItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val categoryColor = remember(expense.category.colorHex) {
+        colorFromHex(expense.category.colorHex)
+    }
+    val formattedAmount = remember(expense.amountInCents, currencyCode) {
+        formatCurrency(expense.amountInCents, currencyCode)
+    }
+    val secondaryLine = remember(expense.category.name, expense.occurredAt, datePattern) {
+        "${expense.category.name} · ${formatDateTime(expense.occurredAt, datePattern)}"
+    }
+
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
@@ -54,13 +65,13 @@ fun ExpenseListItem(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(colorFromHex(expense.category.colorHex).copy(alpha = 0.18f)),
+                    .background(categoryColor.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = symbolForCategory(expense.category.iconName),
                     style = MaterialTheme.typography.labelMedium,
-                    color = colorFromHex(expense.category.colorHex),
+                    color = categoryColor,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -77,7 +88,7 @@ fun ExpenseListItem(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${expense.category.name} · ${formatDateTime(expense.occurredAt, datePattern)}",
+                    text = secondaryLine,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -94,7 +105,7 @@ fun ExpenseListItem(
             }
 
             Text(
-                text = formatCurrency(expense.amountInCents, currencyCode),
+                text = formattedAmount,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
