@@ -77,6 +77,7 @@ class ExpenseEditorViewModel @Inject constructor(
 
     private val expenseIdArgument = savedStateHandle.get<Long>(AppDestination.ExpenseEditor.ARG_EXPENSE_ID)
         ?.takeIf { it > 0L }
+    private val includeInactiveCategories = expenseIdArgument != null
 
     private val mutableState = MutableStateFlow(
         ExpenseEditorUiState(
@@ -99,7 +100,7 @@ class ExpenseEditorViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            categoryRepository.observeCategories(includeInactive = false).collect { categories ->
+            categoryRepository.observeCategories(includeInactive = includeInactiveCategories).collect { categories ->
                 var snapshotToInitialize: ExpenseEditorSnapshot? = null
                 mutableState.update { state ->
                     val updatedState = state.copy(

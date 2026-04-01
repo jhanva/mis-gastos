@@ -43,7 +43,7 @@ class ExpensesViewModel @Inject constructor(
     val uiState: StateFlow<ExpensesUiState> =
         combine(
             expenseRepository.observeExpenses(),
-            categoryRepository.observeCategories(includeInactive = false),
+            categoryRepository.observeCategories(includeInactive = true),
             filters,
             groupingMode,
         ) { expenses, categories, currentFilters, currentGroupingMode ->
