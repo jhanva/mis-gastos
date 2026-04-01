@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.johan.misgastos.domain.model.Category
 import com.johan.misgastos.domain.model.PaymentMethod
 import com.johan.misgastos.domain.model.UserPreferences
 import com.johan.misgastos.ui.LocalSnackbarController
@@ -201,7 +202,7 @@ fun ExpenseEditorScreen(
                         FilterChip(
                             selected = uiState.selectedCategoryId == category.id,
                             onClick = { viewModel.updateCategory(category.id) },
-                            label = { Text(category.name) },
+                            label = { Text(categoryChipLabel(category)) },
                         )
                     }
                 }
@@ -292,4 +293,8 @@ fun ExpenseEditorScreen(
             }
         }
     }
+}
+
+private fun categoryChipLabel(category: Category): String {
+    return if (category.isActive) category.name else "${category.name} (inactiva)"
 }

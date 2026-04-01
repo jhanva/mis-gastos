@@ -77,7 +77,7 @@ class ExpenseEditorViewModel @Inject constructor(
 
     private val expenseIdArgument = savedStateHandle.get<Long>(AppDestination.ExpenseEditor.ARG_EXPENSE_ID)
         ?.takeIf { it > 0L }
-    private val includeInactiveCategories = expenseIdArgument != null
+    private var allCategories: List<Category> = emptyList()
 
     private val mutableState = MutableStateFlow(
         ExpenseEditorUiState(
@@ -100,14 +100,17 @@ class ExpenseEditorViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            categoryRepository.observeCategories(includeInactive = includeInactiveCategories).collect { categories ->
+            categoryRepository.observeCategories(includeInactive = true).collect { categories ->
+                allCategories = categories
                 var snapshotToInitialize: ExpenseEditorSnapshot? = null
                 mutableState.update { state ->
+                    val visibleCategories = visibleCategories(state.selectedCategoryId)
                     val updatedState = state.copy(
-                        categories = categories,
+                        categories = visibleCategories,
                         selectedCategoryId = when {
-                            state.selectedCategoryId != null -> state.selectedCategoryId
-                            expenseIdArgument == null -> categories.firstOrNull()?.id
+                            state.selectedCategoryId != null && visibleCategories.any { it.id == state.selectedCategoryId } ->
+                                state.selectedCategoryId
+                            expenseIdArgument == null -> visibleCategories.firstOrNull()?.id
                             else -> null
                         },
                     )
@@ -143,7 +146,7 @@ class ExpenseEditorViewModel @Inject constructor(
                     selectedCategoryId = expense.category.id,
                     paymentMethod = expense.paymentMethod,
                     occurredAt = expense.occurredAt,
-                    categories = mutableState.value.categories,
+                    categories = visibleCategories(expense.category.id),
                     hasUnsavedChanges = false,
                 )
                 initialSnapshot = mutableState.value.toSnapshot()
@@ -168,7 +171,14 @@ class ExpenseEditorViewModel @Inject constructor(
     }
 
     fun updateCategory(categoryId: Long) {
-        mutableState.update { recalculateDirtyState(it.copy(selectedCategoryId = categoryId)) }
+        mutableState.update {
+            recalculateDirtyState(
+                it.copy(
+                    selectedCategoryId = categoryId,
+                    categories = visibleCategories(categoryId),
+                ),
+            )
+        }
     }
 
     fun updatePaymentMethod(method: PaymentMethod) {
@@ -225,5 +235,11 @@ class ExpenseEditorViewModel @Inject constructor(
         } ?: false
 
         return state.copy(hasUnsavedChanges = dirty)
+    }
+
+    private fun visibleCategories(selectedCategoryId: Long?): List<Category> {
+        return allCategories.filter { category ->
+            category.isActive || category.id == selectedCategoryId
+        }
     }
 }

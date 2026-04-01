@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.johan.misgastos.domain.model.Category
 import com.johan.misgastos.domain.model.ExpenseSortOption
 import com.johan.misgastos.domain.model.UserPreferences
 import com.johan.misgastos.ui.components.ExpenseListItem
@@ -98,7 +99,7 @@ fun ExpensesScreen(
                         FilterChip(
                             selected = uiState.filters.categoryId == category.id,
                             onClick = { viewModel.updateCategory(category.id) },
-                            label = { Text(category.name) },
+                            label = { Text(categoryFilterLabel(category)) },
                         )
                     }
                 }
@@ -250,4 +251,8 @@ private fun ExpenseSortOption.toDayGroupingSortMode(): DayGroupingSortMode {
         ExpenseSortOption.AMOUNT_DESC -> DayGroupingSortMode.AMOUNT_DESC
         ExpenseSortOption.AMOUNT_ASC -> DayGroupingSortMode.AMOUNT_ASC
     }
+}
+
+private fun categoryFilterLabel(category: Category): String {
+    return if (category.isActive) category.name else "${category.name} (inactiva)"
 }
