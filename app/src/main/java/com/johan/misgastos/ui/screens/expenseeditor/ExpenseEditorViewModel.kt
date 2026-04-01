@@ -18,12 +18,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class ExpenseEditorUiState(
     val isLoading: Boolean = true,
+    val isMissing: Boolean = false,
     val expenseId: Long? = null,
     val amountInput: String = "",
     val title: String = "",
@@ -93,7 +95,6 @@ class ExpenseEditorViewModel @Inject constructor(
     private val _events = MutableSharedFlow<ExpenseEditorEvent>()
     val events = _events.asSharedFlow()
 
-    private var initialExpenseLoaded = false
     private var initialSnapshot: ExpenseEditorSnapshot? = null
 
     init {
@@ -124,25 +125,27 @@ class ExpenseEditorViewModel @Inject constructor(
 
         if (expenseIdArgument != null) {
             viewModelScope.launch {
-                expenseRepository.observeExpense(expenseIdArgument).collect { expense ->
-                    if (expense != null && !initialExpenseLoaded) {
-                        initialExpenseLoaded = true
-                        mutableState.value = ExpenseEditorUiState(
-                            isLoading = false,
-                            expenseId = expense.id,
-                            amountInput = formatAmountInputFromCents(expense.amountInCents),
-                            title = expense.title,
-                            description = expense.description.orEmpty(),
-                            notes = expense.notes.orEmpty(),
-                            selectedCategoryId = expense.category.id,
-                            paymentMethod = expense.paymentMethod,
-                            occurredAt = expense.occurredAt,
-                            categories = mutableState.value.categories,
-                            hasUnsavedChanges = false,
-                        )
-                        initialSnapshot = mutableState.value.toSnapshot()
-                    }
+                val expense = expenseRepository.observeExpense(expenseIdArgument).first()
+                if (expense == null) {
+                    mutableState.update { it.copy(isLoading = false, isMissing = true) }
+                    return@launch
                 }
+
+                mutableState.value = ExpenseEditorUiState(
+                    isLoading = false,
+                    isMissing = false,
+                    expenseId = expense.id,
+                    amountInput = formatAmountInputFromCents(expense.amountInCents),
+                    title = expense.title,
+                    description = expense.description.orEmpty(),
+                    notes = expense.notes.orEmpty(),
+                    selectedCategoryId = expense.category.id,
+                    paymentMethod = expense.paymentMethod,
+                    occurredAt = expense.occurredAt,
+                    categories = mutableState.value.categories,
+                    hasUnsavedChanges = false,
+                )
+                initialSnapshot = mutableState.value.toSnapshot()
             }
         }
     }

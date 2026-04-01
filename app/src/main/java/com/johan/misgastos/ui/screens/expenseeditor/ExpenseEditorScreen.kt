@@ -83,6 +83,13 @@ fun ExpenseEditorScreen(
         }
     }
 
+    LaunchedEffect(uiState.isMissing) {
+        if (uiState.isMissing) {
+            snackbarController.showMessage("El gasto ya no existe")
+            onClose()
+        }
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
