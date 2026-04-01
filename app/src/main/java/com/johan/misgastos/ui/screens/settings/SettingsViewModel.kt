@@ -14,6 +14,10 @@ sealed interface SettingsEvent {
     data class Message(val value: String) : SettingsEvent
 }
 
+internal fun isValidCurrencyCode(value: String): Boolean {
+    return value.matches(Regex("^[A-Z]{3}$"))
+}
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -32,8 +36,8 @@ class SettingsViewModel @Inject constructor(
     fun updateCurrencyCode(currencyCode: String) {
         viewModelScope.launch {
             val sanitized = currencyCode.trim().uppercase()
-            if (sanitized.length != 3) {
-                _events.emit(SettingsEvent.Message("Usa un código de moneda de 3 letras, por ejemplo COP"))
+            if (!isValidCurrencyCode(sanitized)) {
+                _events.emit(SettingsEvent.Message("Usa un codigo ISO de 3 letras, por ejemplo COP"))
             } else {
                 userPreferencesRepository.setCurrencyCode(sanitized)
                 _events.emit(SettingsEvent.Message("Moneda actualizada"))
