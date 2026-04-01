@@ -78,7 +78,7 @@ class ExpenseEditorViewModel @Inject constructor(
 
     private val mutableState = MutableStateFlow(
         ExpenseEditorUiState(
-            isLoading = expenseIdArgument != null,
+            isLoading = true,
             expenseId = expenseIdArgument,
         ),
     )
@@ -99,18 +99,26 @@ class ExpenseEditorViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             categoryRepository.observeCategories(includeInactive = false).collect { categories ->
+                var snapshotToInitialize: ExpenseEditorSnapshot? = null
                 mutableState.update { state ->
                     val updatedState = state.copy(
                         categories = categories,
-                        selectedCategoryId = state.selectedCategoryId ?: categories.firstOrNull()?.id,
+                        selectedCategoryId = when {
+                            state.selectedCategoryId != null -> state.selectedCategoryId
+                            expenseIdArgument == null -> categories.firstOrNull()?.id
+                            else -> null
+                        },
                     )
-                    recalculateDirtyState(updatedState)
+                    if (expenseIdArgument == null && initialSnapshot == null) {
+                        val initializedState = updatedState.copy(isLoading = false, hasUnsavedChanges = false)
+                        snapshotToInitialize = initializedState.toSnapshot()
+                        initializedState
+                    } else {
+                        recalculateDirtyState(updatedState)
+                    }
                 }
 
-                if (!mutableState.value.isLoading && initialSnapshot == null && mutableState.value.selectedCategoryId != null) {
-                    initialSnapshot = mutableState.value.toSnapshot()
-                    mutableState.update { it.copy(hasUnsavedChanges = false) }
-                }
+                snapshotToInitialize?.let { initialSnapshot = it }
             }
         }
 
@@ -136,8 +144,6 @@ class ExpenseEditorViewModel @Inject constructor(
                     }
                 }
             }
-        } else {
-            mutableState.update { recalculateDirtyState(it.copy(isLoading = false)) }
         }
     }
 
