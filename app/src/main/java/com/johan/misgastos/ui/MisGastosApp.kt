@@ -1,17 +1,22 @@
 package com.johan.misgastos.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -31,6 +36,8 @@ import androidx.navigation.compose.rememberNavController
 import com.johan.misgastos.domain.model.AppThemeMode
 import com.johan.misgastos.navigation.AppDestination
 import com.johan.misgastos.navigation.MisGastosNavGraph
+import com.johan.misgastos.ui.components.AppWidthSizeClass
+import com.johan.misgastos.ui.components.rememberAppWidthSizeClass
 import com.johan.misgastos.ui.theme.MisGastosTheme
 
 private data class TopLevelDestinationUi(
@@ -50,12 +57,13 @@ fun MisGastosApp(
     val snackbarController = remember(snackbarHostState, scope) {
         SnackbarController(snackbarHostState, scope)
     }
+    val widthSizeClass = rememberAppWidthSizeClass()
 
     val topLevelDestinations = remember {
         listOf(
             TopLevelDestinationUi(AppDestination.Home, "Inicio", Icons.Outlined.Home),
-            TopLevelDestinationUi(AppDestination.Expenses, "Gastos", Icons.Outlined.List),
-            TopLevelDestinationUi(AppDestination.Categories, "Categorías", Icons.Outlined.Edit),
+            TopLevelDestinationUi(AppDestination.Expenses, "Gastos", Icons.AutoMirrored.Outlined.List),
+            TopLevelDestinationUi(AppDestination.Categories, "Categorias", Icons.Outlined.Edit),
             TopLevelDestinationUi(AppDestination.Settings, "Ajustes", Icons.Outlined.Settings),
         )
     }
@@ -63,7 +71,8 @@ fun MisGastosApp(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val topLevelRoutes = topLevelDestinations.map { it.destination.route }.toSet()
-    val showBottomBar = currentRoute in topLevelRoutes
+    val showTopLevelNavigation = currentRoute in topLevelRoutes
+    val useNavigationRail = showTopLevelNavigation && widthSizeClass == AppWidthSizeClass.EXPANDED
     val showFab = currentRoute == AppDestination.Home.route || currentRoute == AppDestination.Expenses.route
 
     val darkTheme = when (appUiState.preferences.themeMode) {
@@ -78,7 +87,7 @@ fun MisGastosApp(
                 modifier = Modifier.fillMaxSize(),
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 bottomBar = {
-                    if (showBottomBar) {
+                    if (showTopLevelNavigation && !useNavigationRail) {
                         NavigationBar {
                             topLevelDestinations.forEach { item ->
                                 val selected = currentRoute == item.destination.route
@@ -120,11 +129,50 @@ fun MisGastosApp(
                     }
                 },
             ) { innerPadding ->
-                MisGastosNavGraph(
-                    navController = navController,
-                    innerPadding = innerPadding,
-                    preferences = appUiState.preferences,
-                )
+                if (useNavigationRail) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        NavigationRail(
+                            modifier = Modifier.padding(innerPadding),
+                        ) {
+                            topLevelDestinations.forEach { item ->
+                                val selected = currentRoute == item.destination.route
+                                NavigationRailItem(
+                                    selected = selected,
+                                    onClick = {
+                                        navController.navigate(item.destination.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    },
+                                    icon = {
+                                        Icon(
+                                            imageVector = item.icon,
+                                            contentDescription = item.label,
+                                        )
+                                    },
+                                    label = { Text(item.label) },
+                                )
+                            }
+                        }
+                        MisGastosNavGraph(
+                            navController = navController,
+                            innerPadding = PaddingValues(),
+                            preferences = appUiState.preferences,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                } else {
+                    MisGastosNavGraph(
+                        navController = navController,
+                        innerPadding = innerPadding,
+                        preferences = appUiState.preferences,
+                    )
+                }
             }
         }
     }
