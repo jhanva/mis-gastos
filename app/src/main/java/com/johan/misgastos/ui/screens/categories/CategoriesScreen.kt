@@ -56,6 +56,16 @@ fun CategoriesScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is CategoriesEvent.Message -> snackbarController.showMessage(event.value)
+                is CategoriesEvent.Saved -> {
+                    snackbarController.showMessage(event.value)
+                    showDialog = false
+                    editingCategory = null
+                }
+                is CategoriesEvent.Deleted -> {
+                    snackbarController.showMessage(event.value)
+                    showDialog = false
+                    editingCategory = null
+                }
             }
         }
     }
@@ -67,16 +77,8 @@ fun CategoriesScreen(
                 showDialog = false
                 editingCategory = null
             },
-            onSave = { draft ->
-                viewModel.saveCategory(draft)
-                showDialog = false
-                editingCategory = null
-            },
-            onDelete = { categoryId ->
-                viewModel.deleteCategory(categoryId)
-                showDialog = false
-                editingCategory = null
-            },
+            onSave = viewModel::saveCategory,
+            onDelete = viewModel::deleteCategory,
         )
     }
 

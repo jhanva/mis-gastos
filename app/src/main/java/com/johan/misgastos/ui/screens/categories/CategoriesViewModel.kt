@@ -51,6 +51,8 @@ internal fun deletingCategoryWouldLeaveNoActive(
 
 sealed interface CategoriesEvent {
     data class Message(val value: String) : CategoriesEvent
+    data class Saved(val value: String) : CategoriesEvent
+    data class Deleted(val value: String) : CategoriesEvent
 }
 
 @HiltViewModel
@@ -82,7 +84,7 @@ class CategoriesViewModel @Inject constructor(
             }
 
             categoryRepository.saveCategory(draft)
-            _events.emit(CategoriesEvent.Message("Categoria guardada"))
+            _events.emit(CategoriesEvent.Saved("Categoria guardada"))
         }
     }
 
@@ -94,7 +96,7 @@ class CategoriesViewModel @Inject constructor(
             }
 
             when (val result = categoryRepository.deleteCategory(categoryId)) {
-                CategoryDeletionResult.Deleted -> _events.emit(CategoriesEvent.Message("Categoria eliminada"))
+                CategoryDeletionResult.Deleted -> _events.emit(CategoriesEvent.Deleted("Categoria eliminada"))
                 is CategoryDeletionResult.InUse -> _events.emit(
                     CategoriesEvent.Message(
                         "No se puede eliminar: ${result.linkedExpenses} gasto(s) la usan",
